@@ -10,8 +10,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from . import filters
 
 from . import models
-from . import services
+from Backend.services import services
 from . import serializers
+
+from Backend.services import active_ser_service
+from Backend.services.pricing_service import PricingService
+from Backend.dtos.Project import Project
+
+from dataclasses import asdict
 
 class PriceViewSet(ModelViewSet):
     queryset = models.Price.objects.all()
@@ -94,7 +100,7 @@ class ServicesViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     def retrieve(self, request, pk=None):
         try:
-            data = services.get_services_by_municipality(key = pk)
+            data = active_ser_service.get_services_by_municipality(key = pk)
             return Response(
                 data,
                 status= status.HTTP_200_OK
@@ -106,6 +112,27 @@ class ServicesViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+#
+# pricing view set
+#
+
+class PricingViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    @action(detail=False, methods=['post'])
+    def evaluate(self, request):
+        serializer = serializers.PricingRequestSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        prj = Project(
+            capacity_mbps=data['capacity_mbps'],
+            contract_time=data['contract_time'],
+            initial_income=data['initial_income']
+        )
+        result = PricingService.evaluate(data['municipality_id'], prj)
+        return Response(asdict(result))
 #
 # EOF
 #

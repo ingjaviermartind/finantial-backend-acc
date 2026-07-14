@@ -110,6 +110,13 @@ class MunicipalitySerializer(serializers.Serializer):
             'name',
             'dane'
         ]
+
+class PricingRequestSerializer(serializers.Serializer):
+    municipality_id = serializers.UUIDField()
+    capacity_mbps = serializers.FloatField(min_value=1)
+    contract_time = serializers.IntegerField(min_value=1)
+    initial_income = serializers.FloatField(default=0)
+
 #
 # EOF
 #
