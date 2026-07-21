@@ -7,7 +7,7 @@ from Backend.dtos.MarketReference import MarketReference
 from Backend.sql import ser_queries
 
 @staticmethod
-def get_services_by_municipality(key, min_cap = 100):
+def get_services_by_municipality(key, min_cap = 10):
     municipality = models.Municipality.objects.get(id=key)
     conn = pyodbc.connect(
         r"DRIVER={ODBC Driver 17 for SQL Server};"
@@ -26,12 +26,10 @@ def get_services_by_municipality(key, min_cap = 100):
     return df_active_services.to_dict(orient="records")
 
 @staticmethod
-def get_services_reference_by_municipality(key):
+def get_services_reference_by_municipality(municipality):
     MIN_SAMPLE = 5
     DEPT_SAMPLE = 5
-    municipality = models.Municipality.objects.select_related(
-            "department"
-        ).get(id=key)
+
     conn = pyodbc.connect(
         r"DRIVER={ODBC Driver 17 for SQL Server};"
         r"SERVER=10.142.16.246\accdwh;"

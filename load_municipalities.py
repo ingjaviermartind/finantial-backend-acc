@@ -7,31 +7,31 @@ os.environ.setdefault(
     'FinantialEv_v1.settings'
 )
 django.setup()
-from Backend.models import Department, Municipality
+
+from Backend.models import Municipality
+
 count = 0
+
 with open(
     'municipalities.csv',
     encoding='utf-8-sig'
 ) as file:
-    reader = csv.DictReader(file,delimiter=';')
+
+    reader = csv.DictReader(file, delimiter=';')
     print(reader.fieldnames)
+
     for row in reader:
-        try:
-            dept = Department.objects.get(
-                name=row['department'].strip()
-            )
-            Municipality.objects.get_or_create(
-                dane=int(row['dane code']),
-                defaults={
-                    'name': row['municipality'].strip(),
-                    'department': dept
-                }
-            )
-            count += 1
-        except Department.DoesNotExist:
-            print(
-                f"Department not found: "
-                f"{row['department']}"
-            )
-print(f"{count} municipalities processed")
+
+        Municipality.objects.filter(
+            dane=int(row['dane code'])
+        ).update(
+            latitude=float(row['latitude'].replace(',', '.')),
+            longitude=float(row['longitude'].replace(',', '.')),
+            node=row['node'].strip(),
+            region=row['region'].strip()
+        )
+
+        count += 1
+
+print(f"{count} municipalities updated")
 print("Task finished")

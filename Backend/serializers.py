@@ -103,12 +103,16 @@ class MunicipalitySerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()
     dane = serializers.IntegerField()
-    class meta:
+    region = serializers.CharField(allow_null=True)
+    node = serializers.CharField(allow_null=True)
+    class Meta:
         model = models.Municipality
         fields = [
             'id',
             'name',
-            'dane'
+            'dane',
+            'region',
+            'node'
         ]
 
 class PricingRequestSerializer(serializers.Serializer):

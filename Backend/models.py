@@ -171,6 +171,24 @@ class Municipality (models.Model):
     )
     name = models.CharField(max_length=100)
     dane = models.PositiveIntegerField()
+    latitude = models.FloatField(
+        null=True,
+        blank=True
+    )
+    longitude = models.FloatField(
+        null=True,
+        blank=True
+    )
+    node = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+    region = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
     def __str__(self):
         return self.name
 

@@ -68,9 +68,9 @@ class financial_engine:
         margin = vpn / income_vpn if income_vpn else 0
         approved = (
             vpn > 0
-            and margin >= 0.52
+            and margin >= 0.6
             and payback is not None
-            and (payback / project.contract_time) <= 0.75
+            and (payback / project.contract_time) <= 0.65
         )
         return EvaluationResult(
             approved=approved,
