@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from . import models
 
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 class PriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Price
@@ -99,6 +101,7 @@ class DepartmentSerializer(serializers.Serializer):
             'id'
             'name'
         ]
+
 class MunicipalitySerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()
@@ -120,6 +123,35 @@ class PricingRequestSerializer(serializers.Serializer):
     capacity_mbps = serializers.FloatField(min_value=1)
     contract_time = serializers.IntegerField(min_value=1)
     initial_income = serializers.FloatField(default=0)
+
+#
+# Services Serializers 
+#
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        user = self.user
+
+        data["user"] = {
+            "id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "groups": list(
+                user.groups.values_list("name", flat=True)
+            )
+        }
+
+        return data
 
 #
 # EOF

@@ -12,12 +12,20 @@ from . import filters
 from . import models
 from Backend.services import services
 from . import serializers
+from .permissions import IsPricing
+from .permissions import IsAdmin
+from .permissions import IsPricingOrAdmin
 
 from Backend.services import active_ser_service
 from Backend.services.pricing_service import PricingService
 from Backend.dtos.Project import Project
 
 from dataclasses import asdict
+
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 class PriceViewSet(ModelViewSet):
     queryset = models.Price.objects.all()
@@ -85,19 +93,22 @@ class VersionViewSet(ModelViewSet):
 # Services view sets
 #
 class DepartmentViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
     queryset = models.Department.objects.all()
     serializer_class = serializers.DepartmentSerializer
 
 class MunicipalityViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
     queryset = models.Municipality.objects.all()
     serializer_class = serializers.MunicipalitySerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = filters.MunicipalityFilter
 
 class ServicesViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
     def retrieve(self, request, pk=None):
         try:
             data = active_ser_service.get_services_by_municipality(key = pk)
@@ -118,7 +129,8 @@ class ServicesViewSet(viewsets.ViewSet):
 #
 
 class PricingViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsPricingOrAdmin]
     @action(detail=False, methods=['post'])
     def evaluate(self, request):
         serializer = serializers.PricingRequestSerializer(
@@ -133,6 +145,14 @@ class PricingViewSet(viewsets.ViewSet):
         )
         result = PricingService.evaluate(data['municipality_id'], prj)
         return Response(asdict(result))
+
+#
+# Auth
+#
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = serializers.CustomTokenObtainPairSerializer
+
 #
 # EOF
 #
