@@ -17,6 +17,9 @@ datos.json
 media/
 staticfiles/
 
+Colombia_departamentos_municipios_poblacion-topov2.json
+
+
 # IDE
 .vscode/
 .idea/

@@ -10,6 +10,26 @@ from Backend.services.reference_price_service import get_reference_price
 from Backend import models
 
 class PricingService:
+
+    CAPACITY_GROUPS = [
+        (2, 15),
+        (16, 74),
+        (75, 349),
+        (350, 1199),
+        (1200, 2999),
+        (3000, 10000000)
+    ]
+
+
+    @staticmethod
+    def get_capacity_group(capacity):
+        for minimo, maximo in PricingService.CAPACITY_GROUPS:
+            if minimo <= capacity <= maximo:
+                return minimo, maximo
+        if capacity > PricingService.CAPACITY_GROUPS[-1][1]:
+            return PricingService.CAPACITY_GROUPS[-1]
+        return PricingService.CAPACITY_GROUPS[0]
+
     @staticmethod
     def evaluate(
         municipality_id, 
@@ -23,7 +43,8 @@ class PricingService:
         predicted_price_mpbs = predict_vlr_mbps(prj.capacity_mbps, municipality)
         predicted_result = financial_engine.evaluate_price_per_mbps(prj,vars,predicted_price_mpbs)
         floor_result = PricingOptimizer.find_floor(prj,vars)
-        market : MarketReference = (get_services_reference_by_municipality(municipality))
+        min_cap, max_cap = PricingService.get_capacity_group(prj.capacity_mbps)
+        market : MarketReference = (get_services_reference_by_municipality(municipality, min_cap, max_cap))
         reference_price = get_reference_price(
             municipality.region,
             prj.capacity_mbps
