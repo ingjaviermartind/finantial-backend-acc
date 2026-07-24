@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
+from django.contrib.auth.models import User
+
 from uuid import uuid4
 
 class Price(models.Model):
@@ -191,6 +193,40 @@ class Municipality (models.Model):
     )
     def __str__(self):
         return self.name
+
+
+
+class Area(models.TextChoices):
+    PRICING = 'pricing'
+    RETENCION = 'retencion'
+    VENTAS = 'ventas'
+
+class Cargo(models.TextChoices):
+    ANALISTA = 'analista'
+    PROFESIONAL = 'profesional'
+    LIDER = 'lider'
+    GERENTE = 'gerente'
+    DIRECTOR = 'director'
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+
+    area = models.CharField(
+        max_length=30,
+        choices=Area.choices
+    )
+
+    cargo = models.CharField(
+        max_length=30,
+        choices=Cargo.choices
+    )
+
+    def __str__(self):
+        return f"{self.user.username} - {self.area} - {self.cargo}"
 
 #
 # EOF

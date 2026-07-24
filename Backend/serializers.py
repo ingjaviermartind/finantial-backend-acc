@@ -140,6 +140,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         user = self.user
 
+        profile = getattr(user, "profile", None)
+
         data["user"] = {
             "id": user.id,
             "username": user.username,
@@ -148,7 +150,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "email": user.email,
             "groups": list(
                 user.groups.values_list("name", flat=True)
-            )
+            ),
+            "area": profile.area if profile else None,
+            "cargo": profile.cargo if profile else None,
         }
 
         return data
