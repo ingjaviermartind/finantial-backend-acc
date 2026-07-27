@@ -10,6 +10,7 @@ router.register(r'department', views.DepartmentViewSet, basename='department')
 router.register(r'municipalities', views.MunicipalityViewSet, basename='municipalities')
 router.register(r'services', views.ServicesViewSet, basename="services")
 router.register(r'pricing', views.PricingViewSet, basename='pricing')
+router.register(r'financial-variables', views.FinancialVariableViewSet, basename='financial-variables')
 
 urlpatterns = [
     path('', include(router.urls)),

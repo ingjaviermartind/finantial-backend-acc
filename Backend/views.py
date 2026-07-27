@@ -123,7 +123,21 @@ class ServicesViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
+class FinancialVariableViewSet(viewsets.ModelViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdmin]
+
+    queryset = models.FinancialVariable.objects.all().order_by('name')
+    serializer_class = serializers.FinancialVariableSerializer
+
+    http_method_names = [
+        "get",
+        "patch",
+        "head",
+        "options"
+    ]
+
 #
 # pricing view set
 #

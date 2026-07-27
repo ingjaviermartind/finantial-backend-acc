@@ -124,8 +124,43 @@ class PricingRequestSerializer(serializers.Serializer):
     contract_time = serializers.IntegerField(min_value=1)
     initial_income = serializers.FloatField(default=0)
 
+class FinancialVariableSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.FinancialVariable
+        fields = [
+            'id',
+            'key',
+            'name',
+            'value',
+            'unit',
+            'updated_at'
+        ]
+
+        read_only_fields = [
+            "id",
+            "key",
+            "name",
+            "unit",
+            "updated_at"
+        ]
+
+    def validate_value(self, value):
+        if value < 0:
+            raise serializers.ValidationError(
+                "El valor no puede ser negativo."
+            )
+        if self.instance.key in [
+            "TRM",
+            "WACC",
+        ] and value <= 0:
+            raise serializers.ValidationError(
+                "Esta variable debe ser mayor que cero."
+            )
+        return value
+
 #
-# Services Serializers 
+# auth Serializers 
 #
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
