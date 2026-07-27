@@ -2,6 +2,7 @@ from rest_framework import serializers
 from . import models
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.password_validation import validate_password
 
 class PriceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -192,6 +193,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return data
 
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(
+        write_only=True
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8
+    )
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+    
 #
 # EOF
 #

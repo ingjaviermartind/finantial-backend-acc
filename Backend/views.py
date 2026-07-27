@@ -167,6 +167,45 @@ class PricingViewSet(viewsets.ViewSet):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = serializers.CustomTokenObtainPairSerializer
 
+class ChangePasswordView(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    # permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        serializer = serializers.ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        current_password = serializer.validated_data["current_password"]
+        new_password = serializer.validated_data["new_password"]
+        if not user.check_password(
+            current_password
+        ):
+            return Response(
+                {
+                    "detail":
+                    "La contraseña actual es incorrecta."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if current_password == new_password:
+            return Response(
+                {
+                    "detail":
+                    "La nueva contraseña debe ser diferente."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.set_password(
+            new_password
+        )
+        user.save()
+        return Response(
+            {
+                "detail":
+                "Contraseña actualizada correctamente."
+            }
+        )
+
 #
 # EOF
 #

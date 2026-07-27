@@ -14,6 +14,10 @@ router.register(r'financial-variables', views.FinancialVariableViewSet, basename
 
 urlpatterns = [
     path('', include(router.urls)),
+    path(
+        'change-password/',
+        views.ChangePasswordView.as_view()
+    )
 ]
 
 #
