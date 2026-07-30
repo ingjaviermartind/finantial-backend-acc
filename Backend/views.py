@@ -29,6 +29,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+from rest_framework.permissions import AllowAny
+
 class PriceViewSet(ModelViewSet):
     queryset = models.Price.objects.all()
     serializer_class = serializers.PriceSerializer
@@ -210,6 +215,19 @@ class ChangePasswordView(APIView):
                 "detail": "Contraseña actualizada correctamente."
             }
         )
+
+class health(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        return Response(
+        {
+            "application": "Financial Evaluator",
+            "status": "UP",
+            "version": "1.0.0"
+        }
+    )
     
 #
 # EOF

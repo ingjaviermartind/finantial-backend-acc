@@ -16,8 +16,9 @@ urlpatterns = [
     path('', include(router.urls)),
     path(
         'change-password/',
-        views.ChangePasswordView.as_view()
-    )
+        views.ChangePasswordView.as_view(),
+    ),
+    path("health/", views.health.as_view()),
 ]
 
 #
