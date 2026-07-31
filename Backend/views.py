@@ -34,6 +34,8 @@ from rest_framework.response import Response
 
 from rest_framework.permissions import AllowAny
 
+from sqlalchemy.exc import SQLAlchemyError
+
 class PriceViewSet(ModelViewSet):
     queryset = models.Price.objects.all()
     serializer_class = serializers.PriceSerializer
@@ -117,19 +119,25 @@ class ServicesViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
     def retrieve(self, request, pk=None):
-        try:
-            data = active_ser_service.get_services_by_municipality(key = pk)
-            return Response(
-                data,
-                status= status.HTTP_200_OK
+        user = request.user
+        user_name = request.user.get_full_name() or request.user.username
+        municipality = models.Municipality.objects.get(id=pk)
+        print(f"{user_name} consultó servicios del municipio {municipality.name} del departamento {municipality.department.name}")
+        result = active_ser_service.get_services_by_municipality(key=pk)
+        if not result["success"]:
+            status_code = (
+                status.HTTP_404_NOT_FOUND
+                if result["code"] == "MUNICIPALITY_NOT_FOUND"
+                else status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        except models.Municipality.DoesNotExist:
             return Response(
-                {
-                    "detail": "Municipio no encontrado."
-                },
-                status=status.HTTP_404_NOT_FOUND
+                result,
+                status=status_code
             )
+        return Response(
+            result,
+            status=status.HTTP_200_OK
+        )
 
 class FinancialVariableViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
@@ -154,17 +162,40 @@ class PricingViewSet(viewsets.ViewSet):
     permission_classes = [IsPricingOrAdmin]
     @action(detail=False, methods=['post'])
     def evaluate(self, request):
+
+        user_name = request.user.get_full_name() or request.user.username
+
         serializer = serializers.PricingRequestSerializer(
             data=request.data
         )
+
         serializer.is_valid(raise_exception=True)
+
         data = serializer.validated_data
+
+        municipality = models.Municipality.objects.get(
+            id=data['municipality_id']
+        )
+
+        print(
+            f"{user_name} evaluó "
+            f"{data['capacity_mbps']} Mbps a "
+            f"{data['contract_time']} meses en el municipio "
+            f"{municipality.name} del departamento "
+            f"{municipality.department.name}"
+        )
+
         prj = Project(
             capacity_mbps=data['capacity_mbps'],
             contract_time=data['contract_time'],
             initial_income=data['initial_income']
         )
-        result = PricingService.evaluate(data['municipality_id'], prj)
+
+        result = PricingService.evaluate(
+            data['municipality_id'],
+            prj
+        )
+
         return Response(asdict(result))
 
 #

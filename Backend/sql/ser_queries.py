@@ -30,8 +30,8 @@ QUERY_ACTIVE_SERVICES = """
     )
     AND SegmentacionIVR = 'ISPs'
     AND TARIFA > 1
-    AND CAPACIDADBPS >= ?
-    AND [Codigo DANE] = ?
+    AND CAPACIDADBPS >= :min_cap
+    AND [Codigo DANE] = :dane
     ORDER BY CAPACIDADBPS DESC
         """
 
@@ -96,9 +96,9 @@ SELECT
     )
     AND TARIFA > 10
     AND CAPACIDADBPS <> 0
-    AND [Codigo DANE] = ?
-    AND CAPACIDADBPS >= ?
-    AND CAPACIDADBPS <= ?
+    AND [Codigo DANE] = :dane
+    AND CAPACIDADBPS >= :min_cap
+    AND CAPACIDADBPS <= :max_cap
     ORDER BY TARIFA DESC
 """
 
@@ -163,9 +163,9 @@ SELECT
     )
     AND TARIFA > 10
     AND CAPACIDADBPS <> 0
-    AND DEPARTAMENTO = ?
-    AND CAPACIDADBPS >= ?
-    AND CAPACIDADBPS <= ?
+    AND DEPARTAMENTO = :department
+    AND CAPACIDADBPS >= :min_cap
+    AND CAPACIDADBPS <= :max_cap
     ORDER BY TARIFA DESC
 """
 
@@ -230,7 +230,7 @@ SELECT
     )
     AND TARIFA > 10
     AND CAPACIDADBPS <> 0
-    AND CAPACIDADBPS >= ?
-    AND CAPACIDADBPS <= ?
+    AND CAPACIDADBPS >= :min_cap
+    AND CAPACIDADBPS <= :max_cap
     ORDER BY TARIFA DESC
 """
