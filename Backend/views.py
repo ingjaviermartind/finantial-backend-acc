@@ -162,21 +162,15 @@ class PricingViewSet(viewsets.ViewSet):
     permission_classes = [IsPricingOrAdmin]
     @action(detail=False, methods=['post'])
     def evaluate(self, request):
-
         user_name = request.user.get_full_name() or request.user.username
-
         serializer = serializers.PricingRequestSerializer(
             data=request.data
         )
-
         serializer.is_valid(raise_exception=True)
-
         data = serializer.validated_data
-
         municipality = models.Municipality.objects.get(
             id=data['municipality_id']
         )
-
         print(
             f"{user_name} evaluó "
             f"{data['capacity_mbps']} Mbps a "
@@ -184,18 +178,15 @@ class PricingViewSet(viewsets.ViewSet):
             f"{municipality.name} del departamento "
             f"{municipality.department.name}"
         )
-
         prj = Project(
             capacity_mbps=data['capacity_mbps'],
             contract_time=data['contract_time'],
             initial_income=data['initial_income']
         )
-
         result = PricingService.evaluate(
             data['municipality_id'],
             prj
         )
-
         return Response(asdict(result))
 
 #
