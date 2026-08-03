@@ -34,6 +34,7 @@ from rest_framework.response import Response
 
 from rest_framework.permissions import AllowAny
 
+
 from sqlalchemy.exc import SQLAlchemyError
 
 class PriceViewSet(ModelViewSet):

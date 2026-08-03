@@ -164,6 +164,8 @@ class FinancialVariableSerializer(serializers.ModelSerializer):
 # auth Serializers 
 #
 
+from django.contrib.auth.models import update_last_login
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     @classmethod
@@ -173,11 +175,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-
         user = self.user
-
         profile = getattr(user, "profile", None)
-
+        update_last_login(None, self.user)
         data["user"] = {
             "id": user.id,
             "username": user.username,
@@ -190,7 +190,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "area": profile.area if profile else None,
             "cargo": profile.cargo if profile else None,
         }
-
         return data
 
 class ChangePasswordSerializer(serializers.Serializer):
