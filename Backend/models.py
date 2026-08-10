@@ -131,7 +131,6 @@ class Unit (models.TextChoices):
     PERCENT = "%"
     AD = "adimensional"
 
-
 class FinancialVariable(models.Model):
     key = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
@@ -200,6 +199,7 @@ class Area(models.TextChoices):
     PRICING = 'pricing'
     RETENCION = 'retencion'
     VENTAS = 'ventas'
+    PREVENTA = 'preventa'
 
 class Cargo(models.TextChoices):
     ANALISTA = 'analista'
@@ -227,6 +227,34 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.area} - {self.cargo}"
+
+
+
+class Subsegment(models.TextChoices):
+    NEGOCIOS = 'Negocios'
+    EMPRESAS = 'Empresas'
+    RESIDENCIAL = 'Residencial'
+    ISP = 'ISPs'
+    WHOLESALE = 'Wholesale'
+    GOBIERNO = 'Gobierno'
+    COMUNITARIO = 'Comunitario'
+    ZERO = '0'
+    N_A = 'No Aplica'
+
+class Client(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    verification_number = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
+    identification_number = models.PositiveIntegerField(default = 0)
+    name = models.CharField(max_length=50)
+    subsegment = models.CharField(
+        max_length=30,
+        choices=Subsegment.choices
+    )
+    def __str__(self):
+        return self.name
 
 #
 # EOF

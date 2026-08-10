@@ -1,18 +1,31 @@
 
 QUERY_ACTIVE_SERVICES = """
+    WITH Servicios AS
+    (
+        SELECT *,
+            CASE
+                WHEN DIGITO_VERIFICACION IS NULL
+                    THEN CAST(NRO_IDENTIFICACION AS varchar(20))
+                ELSE CONCAT(NRO_IDENTIFICACION, '-', DIGITO_VERIFICACION)
+            END AS NIT
+        FROM DTM.SF_SERVICE_LEGV2
+    )
+
     SELECT 
-        RAZON_SOCIAL AS [Razón Social],
-        ANCHODEBANDA AS [Capacidad],
-        TARIFA AS [Tarifa],
-        TARIFA / CAPACIDADBPS AS [Vlr x Mbps],
-        FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia]
-    FROM [DTM].[SF_SERVICE_LEGV2]
-    WHERE ESTADO_SER NOT IN (
+        s.NIT,
+        s.RAZON_SOCIAL AS [Razón Social],
+        s.ANCHODEBANDA AS [Capacidad],
+        s.CAPACIDADBPS,
+        s.TARIFA AS [Tarifa],
+        s.TARIFA / s.CAPACIDADBPS AS [Vlr x Mbps],
+        s.FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia]
+    FROM Servicios s
+    WHERE s.ESTADO_SER NOT IN (
         'Cancelado',
         'Error',
         'En Proceso',
         'Declinado'
-    ) AND [PLAN] IN (
+    ) AND s.[PLAN] IN (
         'CANAL NACIONAL ETHERNET',
         'IRU DE CAPACIDAD',
         'CANAL NACIONAL ETHERNET SIN UK',
@@ -28,11 +41,30 @@ QUERY_ACTIVE_SERVICES = """
         'INTERNET + ALTO VALOR ESTRATO(4-6)',
         'INTERNET +'
     )
-    AND SegmentacionIVR = 'ISPs'
-    AND TARIFA > 1
-    AND CAPACIDADBPS >= :min_cap
-    AND [Codigo DANE] = :dane
-    ORDER BY CAPACIDADBPS DESC
+    --AND SegmentacionIVR = 'ISPs'
+    AND s.NIT NOT IN (
+        '800136835-1', -- cirion
+        '800153993-7', -- claro
+        '800255754-1', -- sencinet latam colombia sa
+        '806009543-2', -- ufinet colombia sa
+        '811021654-9', -- internexa
+        '819006966-8', -- media commerce
+        '830053800-4', -- telmex
+        '830058677-7', -- ifx
+        '830078515-8', -- liberty networks 
+        '830114921-1', -- tigo
+        '830122566-1', -- telefonica
+        '890905065-2', -- edatel
+        '899999115-8', -- etb
+        '900092385-9', -- une
+        '900195679-1', -- gtd colombia sas
+        '900258177-8', -- Globenet 
+        '901354361-1' -- partners telecom colombia sas
+    )
+    AND s.TARIFA > 1
+    AND s.CAPACIDADBPS >= :min_cap
+    AND s.[Codigo DANE] = :dane
+    ORDER BY s.CAPACIDADBPS DESC
         """
 
 QUERY_SERVICES_REFERENCE_MUN = """

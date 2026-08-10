@@ -9,6 +9,27 @@ from Backend.sql.database import engine
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from Backend import models
+
+CAPACITY_GROUPS = [
+    (2, 15, "2-15 Mbps"),
+    (16, 74, "16-74 Mbps"),
+    (75, 349, "75-349 Mbps"),
+    (350, 1199, "350-1199 Mbps"),
+    (1200, 2999, "1200-2999 Mbps"),
+    (3000, 10000000, "3000+ Mbps"),
+]
+
+@staticmethod
+def get_capacity_group(capacity):
+    if pd.isna(capacity):
+        return None
+
+    for min_cap, max_cap, label in CAPACITY_GROUPS:
+        if min_cap <= capacity <= max_cap:
+            return label
+
+    return None
 
 @staticmethod
 def get_services_by_municipality(key, min_cap = 10):
@@ -22,6 +43,45 @@ def get_services_by_municipality(key, min_cap = 10):
                 "dane": municipality.dane
             }
         )
+        clients = pd.DataFrame(
+            models.Client.objects.values(
+                'identification_number',
+                'verification_number',
+                'name',
+                'subsegment'
+            )
+        )
+        clients['NIT'] = clients.apply(
+            lambda row: (
+                f"{int(row['identification_number'])}-{int(row['verification_number'])}"
+                if pd.notna(row['verification_number'])
+                else str(int(row['identification_number']))
+            ),
+            axis=1
+        )
+        df_active_services = df_active_services.merge(
+            clients[['NIT', 'name', 'subsegment']],
+            on='NIT',
+            how='left'
+        )
+        df_active_services["subsegment"] = (
+            df_active_services["subsegment"].fillna("Sin segmentar")
+        )
+        
+        df_active_services['Razón Social'] = (
+            df_active_services['name']
+            .combine_first(df_active_services['Razón Social'])
+        )
+        
+        capacity = pd.to_numeric(
+            df_active_services['CAPACIDADBPS'],
+            errors='coerce'
+        )
+        df_active_services['Rango Capacidad'] = capacity.apply(
+            get_capacity_group
+        )
+        df_active_services.drop(columns=['name'], inplace=True)
+        df_active_services.drop(columns=['CAPACIDADBPS'], inplace=True)
 
         return {
             "success": True,
