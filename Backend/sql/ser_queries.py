@@ -62,6 +62,7 @@ QUERY_ACTIVE_SERVICES = """
         '901354361-1' -- partners telecom colombia sas
     )
     AND s.TARIFA > 1
+    AND SER NOT IN  ('SER-280627')
     AND s.CAPACIDADBPS >= :min_cap
     AND s.[Codigo DANE] = :dane
     ORDER BY s.CAPACIDADBPS DESC
@@ -128,6 +129,7 @@ SELECT
     )
     AND TARIFA > 10
     AND CAPACIDADBPS <> 0
+    AND SER NOT IN  ('SER-280627')
     AND [Codigo DANE] = :dane
     AND CAPACIDADBPS >= :min_cap
     AND CAPACIDADBPS <= :max_cap
@@ -195,6 +197,7 @@ SELECT
     )
     AND TARIFA > 10
     AND CAPACIDADBPS <> 0
+    AND SER NOT IN  ('SER-280627')
     AND DEPARTAMENTO = :department
     AND CAPACIDADBPS >= :min_cap
     AND CAPACIDADBPS <= :max_cap
@@ -262,6 +265,7 @@ SELECT
     )
     AND TARIFA > 10
     AND CAPACIDADBPS <> 0
+    AND SER NOT IN  ('SER-280627')
     AND CAPACIDADBPS >= :min_cap
     AND CAPACIDADBPS <= :max_cap
     ORDER BY TARIFA DESC
