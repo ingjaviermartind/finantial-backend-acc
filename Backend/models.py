@@ -204,6 +204,7 @@ class Area(models.TextChoices):
 class Cargo(models.TextChoices):
     ANALISTA = 'analista'
     PROFESIONAL = 'profesional'
+    INGENIERO = 'ingeniero'
     LIDER = 'lider'
     GERENTE = 'gerente'
     DIRECTOR = 'director'
@@ -214,17 +215,14 @@ class UserProfile(models.Model):
         on_delete=models.CASCADE,
         related_name='profile'
     )
-
     area = models.CharField(
         max_length=30,
         choices=Area.choices
     )
-
     cargo = models.CharField(
         max_length=30,
         choices=Cargo.choices
     )
-
     def __str__(self):
         return f"{self.user.username} - {self.area} - {self.cargo}"
 

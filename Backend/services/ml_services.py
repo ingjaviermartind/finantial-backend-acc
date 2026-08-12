@@ -10,6 +10,7 @@ MODEL_PATH = BASE_DIR / "ml_models" / "rf_vlr_mbps_v2.pkl"
 package = joblib.load(MODEL_PATH)
 
 model = package["model"]
+model.set_params(n_jobs=1)
 features = package["features"]
 
 
@@ -26,7 +27,9 @@ def predict_vlr_mbps(capacity: float, municipality) -> float:
     )
 
     log_vlr = model.predict(X)[0]
-
+    # print(type(model))
+    # print(model)
+    # print(model.get_params().get("n_jobs"))
     return float(10 ** log_vlr)
 
 def get_model_info() -> dict:
