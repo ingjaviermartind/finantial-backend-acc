@@ -6,7 +6,7 @@ from Backend.services.active_ser_service import get_services_reference_by_munici
 from Backend.services.financial_variable_service import FinancialVariableService
 from Backend.services.optimize_service import PricingOptimizer
 from Backend.services.financial_engine import financial_engine
-from Backend.services.reference_price_service import get_reference_price
+from Backend.services.reference_price_service import get_ref_price
 from Backend import models
 
 class PricingService:
@@ -45,8 +45,8 @@ class PricingService:
         floor_result = PricingOptimizer.find_floor(prj,vars)
         min_cap, max_cap = PricingService.get_capacity_group(prj.capacity_mbps)
         market : MarketReference = (get_services_reference_by_municipality(municipality, min_cap, max_cap))
-        reference_price = get_reference_price(
-            municipality.region,
+        reference_price = get_ref_price(
+            municipality,
             prj.capacity_mbps
         ) 
         return PricingRecommendation(
@@ -58,7 +58,9 @@ class PricingService:
             market_std=market.std_price_mbps,
             market_sample=market.sample_size,
             market_source=market.source,
-            reference_price_mbps=reference_price
+            ref_price_mbps=reference_price.get("BASE"),
+            ref_price_mbps_dis=reference_price.get("DISCOUNT"),
+            ref_price_mbps_special=reference_price.get("SPECIAL"),
         )
 
 

@@ -1,0 +1,15 @@
+-- database: ./db.sqlite3
+
+SELECT 
+    cap.mbps,
+    reg.name,
+    rp.price_type,
+    value
+FROM Backend_referenceprice rp
+
+LEFT JOIN Backend_capacity cap 
+    ON rp.capacity_id = cap.id
+LEFT JOIN Backend_region reg
+    ON rp.region_id = reg.id
+
+ORDER BY reg.name, cap.mbps, price_type;

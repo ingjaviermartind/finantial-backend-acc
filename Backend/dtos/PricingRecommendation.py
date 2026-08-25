@@ -13,4 +13,6 @@ class PricingRecommendation:
     market_std: float
     market_source: str
     market_sample: int
-    reference_price_mbps: float
+    ref_price_mbps: float
+    ref_price_mbps_dis: float
+    ref_price_mbps_special: float

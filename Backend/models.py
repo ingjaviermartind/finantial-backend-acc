@@ -6,115 +6,115 @@ from django.contrib.auth.models import User
 
 from uuid import uuid4
 
-class Price(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    name = models.CharField(max_length=200)
-    funnel = models.CharField(max_length=50)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
-        related_name='prices'
-    )
-    def __str__(self):
-        return self.name
+# class Price(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+#     name = models.CharField(max_length=200)
+#     funnel = models.CharField(max_length=50)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+#     created_by = models.ForeignKey(
+#         settings.AUTH_USER_MODEL, 
+#         on_delete=models.CASCADE, 
+#         related_name='prices'
+#     )
+#     def __str__(self):
+#         return self.name
 
-class PriceVersion(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    price = models.ForeignKey(
-        Price, 
-        on_delete=models.CASCADE, 
-        related_name='versions'
-    )
-    horizon = models.PositiveIntegerField(default=0)  # meses
-    PAYMENT_TYPE = [
-        ('one time', 'One time'),
-        ('monthly', 'Monthly')
-    ]
-    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE)
-    version_number = models.PositiveIntegerField()
-    is_current = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
-        related_name='price_versions'
-    )
-    class Meta:
-        unique_together = ('price', 'horizon','version_number')
-        constraints = [
-            models.UniqueConstraint(
-                fields=['price','horizon'],
-                condition=Q(is_current=True),
-                name='unique_current_version_per_price_horizon'
-            )
-        ]
-        ordering = ['-created_at']
-    def __str__(self):
-        return f"{self.price.name} v{self.version_number} {self.payment_type} ({self.horizon} month/s)"
+# class PriceVersion(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+#     price = models.ForeignKey(
+#         Price, 
+#         on_delete=models.CASCADE, 
+#         related_name='versions'
+#     )
+#     horizon = models.PositiveIntegerField(default=0)  # meses
+#     PAYMENT_TYPE = [
+#         ('one time', 'One time'),
+#         ('monthly', 'Monthly')
+#     ]
+#     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE)
+#     version_number = models.PositiveIntegerField()
+#     is_current = models.BooleanField(default=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+#     created_by = models.ForeignKey(
+#         settings.AUTH_USER_MODEL, 
+#         on_delete=models.CASCADE, 
+#         related_name='price_versions'
+#     )
+#     class Meta:
+#         unique_together = ('price', 'horizon','version_number')
+#         constraints = [
+#             models.UniqueConstraint(
+#                 fields=['price','horizon'],
+#                 condition=Q(is_current=True),
+#                 name='unique_current_version_per_price_horizon'
+#             )
+#         ]
+#         ordering = ['-created_at']
+#     def __str__(self):
+#         return f"{self.price.name} v{self.version_number} {self.payment_type} ({self.horizon} month/s)"
 
-class FinancialInputs(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    version = models.OneToOneField(
-        PriceVersion, 
-        on_delete=models.CASCADE,
-        related_name='inputs'
-    )
-    # horizon = models.PositiveIntegerField()  # meses
-    inicial_income = models.FloatField(default=0.0)
-    capex = models.FloatField()
-    opex = models.FloatField()
-    wacc = models.FloatField()
-    factor = models.FloatField(default=1.0)
-    sensitivity = models.FloatField(default=1.0)
-    # PAYMENT_TYPE = [
-    #     ('one time', 'One time'),
-    #     ('monthly', 'Monthly')
-    # ]
-    # payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE)
-    # payment_duration = models.PositiveIntegerField(null=True, blank=True)
-    def __str__(self):
-        return f"Inputs {self.version}"
+# class FinancialInputs(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+#     version = models.OneToOneField(
+#         PriceVersion, 
+#         on_delete=models.CASCADE,
+#         related_name='inputs'
+#     )
+#     # horizon = models.PositiveIntegerField()  # meses
+#     inicial_income = models.FloatField(default=0.0)
+#     capex = models.FloatField()
+#     opex = models.FloatField()
+#     wacc = models.FloatField()
+#     factor = models.FloatField(default=1.0)
+#     sensitivity = models.FloatField(default=1.0)
+#     # PAYMENT_TYPE = [
+#     #     ('one time', 'One time'),
+#     #     ('monthly', 'Monthly')
+#     # ]
+#     # payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE)
+#     # payment_duration = models.PositiveIntegerField(null=True, blank=True)
+#     def __str__(self):
+#         return f"Inputs {self.version}"
 
-class CashFlow(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    version = models.ForeignKey(
-        PriceVersion, 
-        on_delete=models.CASCADE,
-        related_name='flows'
-    )
-    period = models.PositiveIntegerField()
-    income = models.FloatField()
-    opex = models.FloatField()
-    ebitda = models.FloatField()
-    capex = models.FloatField()
-    fcl = models.FloatField()
-    discount_factor = models.FloatField()
-    fcl_discounted = models.FloatField()
-    class Meta:
-        unique_together = ('version', 'period')
-        ordering = ['period']
-    def __str__(self):
-        return f'Flow {self.version} - period {self.period}'
+# class CashFlow(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+#     version = models.ForeignKey(
+#         PriceVersion, 
+#         on_delete=models.CASCADE,
+#         related_name='flows'
+#     )
+#     period = models.PositiveIntegerField()
+#     income = models.FloatField()
+#     opex = models.FloatField()
+#     ebitda = models.FloatField()
+#     capex = models.FloatField()
+#     fcl = models.FloatField()
+#     discount_factor = models.FloatField()
+#     fcl_discounted = models.FloatField()
+#     class Meta:
+#         unique_together = ('version', 'period')
+#         ordering = ['period']
+#     def __str__(self):
+#         return f'Flow {self.version} - period {self.period}'
 
-class FinancialResults(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    version = models.OneToOneField(
-        PriceVersion, 
-        on_delete=models.CASCADE,
-        related_name='results'
-    )
-    vpn = models.FloatField()
-    income_vpn = models.FloatField(default=0)
-    payback = models.FloatField()
-    contribution_percent = models.FloatField()
-    ebitda_total = models.FloatField()
-    net_margin = models.FloatField(default=0)
-    price = models.FloatField(default=0)
-    def __str__(self):
-        return f'Results {self.version}'
+# class FinancialResults(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+#     version = models.OneToOneField(
+#         PriceVersion, 
+#         on_delete=models.CASCADE,
+#         related_name='results'
+#     )
+#     vpn = models.FloatField()
+#     income_vpn = models.FloatField(default=0)
+#     payback = models.FloatField()
+#     contribution_percent = models.FloatField()
+#     ebitda_total = models.FloatField()
+#     net_margin = models.FloatField(default=0)
+#     price = models.FloatField(default=0)
+#     def __str__(self):
+#         return f'Results {self.version}'
 
 #
 # Services Classes
@@ -152,6 +152,85 @@ class Zone (models.TextChoices):
     NORTE_SANTANDER = "NORTE DE SANTANDER"
     NONE = "NONE", "NINGUNO"
 
+class Region(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid4,
+        editable=False
+    )
+    name = models.CharField(
+        max_length=100,
+        unique=True
+    )
+    def __str__(self):
+        return self.name
+
+class Capacity(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid4,
+        editable=False
+    )
+    mbps=models.PositiveIntegerField(
+        unique=True
+    )
+    def __str__(self):
+        return f'{self.mbps} Mbps'
+
+class PriceType(models.TextChoices):
+    BASE = 'BASE', 'Tarifa Base'
+    DISCOUNT = 'DISCOUNT', 'Tarifa con Descuento'
+    SPECIAL = 'SPECIAL', 'Tarifa Especial'
+
+class ReferencePrice(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid4,
+        editable=False
+    )
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.PROTECT,
+        related_name='reference_prices'
+    )
+    capacity = models.ForeignKey(
+        Capacity,
+        on_delete=models.PROTECT,
+        related_name='reference_prices'
+    )
+    price_type = models.CharField(
+        max_length=20,
+        choices=PriceType.choices,
+        default=PriceType.BASE
+    )
+    value = models.DecimalField(
+        max_digits=15,
+        decimal_places=2
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'region',
+                    'capacity',
+                    'price_type'
+                ],
+                name='unique_reference_price'
+            )
+        ]
+    def __str__(self):
+        return (
+            f'{self.region} | '
+            f'{self.capacity} | '
+            f'{self.get_price_type_display()}'
+        )
+
 class Department (models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     name = models.CharField(max_length=50)
@@ -185,10 +264,11 @@ class Municipality (models.Model):
         null=True,
         blank=True
     )
-    region = models.CharField(
-        max_length=50,
+    region = models.ForeignKey(
+        Region,
         null=True,
-        blank=True
+        blank=True,
+        on_delete=models.PROTECT
     )
     def __str__(self):
         return self.name
