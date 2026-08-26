@@ -1,7 +1,7 @@
 from Backend.dtos.Project import Project
 from Backend.dtos.PricingRecommendation import PricingRecommendation
 from Backend.dtos.MarketReference import MarketReference
-from Backend.services.ml_services import predict_vlr_mbps
+from Backend.services.ml_services import predict_vlr_mbps_nw
 from Backend.services.active_ser_service import get_services_reference_by_municipality
 from Backend.services.financial_variable_service import FinancialVariableService
 from Backend.services.optimize_service import PricingOptimizer
@@ -40,7 +40,7 @@ class PricingService:
         ).get(id=municipality_id)
 
         vars = FinancialVariableService.get_variables()
-        predicted_price_mpbs = predict_vlr_mbps(prj.capacity_mbps, municipality)
+        predicted_price_mpbs = predict_vlr_mbps_nw(prj.capacity_mbps, municipality, prj.contract_time, prj.product_type, prj.product, prj.subsegment)
         predicted_result = financial_engine.evaluate_price_per_mbps(prj,vars,predicted_price_mpbs)
         floor_result = PricingOptimizer.find_floor(prj,vars)
         min_cap, max_cap = PricingService.get_capacity_group(prj.capacity_mbps)

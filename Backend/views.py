@@ -34,8 +34,7 @@ from rest_framework.response import Response
 
 from rest_framework.permissions import AllowAny
 
-
-from sqlalchemy.exc import SQLAlchemyError
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 # class PriceViewSet(ModelViewSet):
 #     queryset = models.Price.objects.all()
@@ -157,6 +156,24 @@ class FinancialVariableViewSet(viewsets.ModelViewSet):
 #
 # pricing view set
 #
+class ProductCatalogViewSet(ReadOnlyModelViewSet):
+    authentication_classes = [JWTAuthentication]
+    queryset = models.ProductCatalog.objects.filter(is_active=True)
+    serializer_class = serializers.ProductCatalogSerializer
+
+class SubsegmentViewSet(ReadOnlyModelViewSet):
+    authentication_classes = [JWTAuthentication]
+    def list(self, request):
+        subsegments = (
+            models.Client.objects
+            .exclude(subsegment__isnull=True)
+            .exclude(subsegment='No Aplica')
+            # .exclude(subsegment='Wholesale')
+            .values_list('subsegment', flat=True)
+            .distinct()
+            .order_by('subsegment')
+        )
+        return Response(subsegments)
 
 class PricingViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
@@ -172,9 +189,13 @@ class PricingViewSet(viewsets.ViewSet):
         municipality = models.Municipality.objects.get(
             id=data['municipality_id']
         )
+        product = models.ProductCatalog.objects.get(
+            id=data['product_id']
+        )
         print(
             f"{user_name} evaluó "
-            f"{data['capacity_mbps']} Mbps a "
+            f"el producto {product.product} ({product.product_type}) "
+            f"con una capacidad de {data['capacity_mbps']} Mbps a "
             f"{data['contract_time']} meses en el municipio "
             f"{municipality.name} del departamento "
             f"{municipality.department.name}"
@@ -182,7 +203,10 @@ class PricingViewSet(viewsets.ViewSet):
         prj = Project(
             capacity_mbps=data['capacity_mbps'],
             contract_time=data['contract_time'],
-            initial_income=data['initial_income']
+            initial_income=data['initial_income'],
+            product_type=product.product_type,
+            product=product.product,
+            subsegment=data['subsegment']
         )
         result = PricingService.evaluate(
             data['municipality_id'],
