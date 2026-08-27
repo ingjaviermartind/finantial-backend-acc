@@ -41,6 +41,7 @@ QUERY_ACTIVE_SERVICES = """
         s.TARIFA AS [Tarifa], 
         s.TARIFA / s.CAPACIDADBPS AS [Vlr x Mbps], 
         s.FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia],
+        s.PRODUCTO AS Producto,
         tc.TARIFA_TOTAL_CLIENTE AS [Tarifa Total Cliente]
 
     FROM ServiciosActivos s

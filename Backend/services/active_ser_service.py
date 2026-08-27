@@ -1,4 +1,3 @@
-import pyodbc
 import pandas as pd
 from Backend import models
 
@@ -91,6 +90,8 @@ def get_services_by_municipality(key, min_cap = 10):
         )
         df_active_services.drop(columns=['name'], inplace=True)
         df_active_services.drop(columns=['CAPACIDADBPS'], inplace=True)
+
+        df_active_services['Producto'] = df_active_services['Producto'].str.title().str.replace('Id', 'ID', regex=False).str.replace('Ip', 'IP', regex=False).str.replace('Iru', 'IRU', regex=False).str.replace('Uk', 'UK', regex=False).str.replace('Ba', 'BA', regex=False)
 
         return {
             "success": True,

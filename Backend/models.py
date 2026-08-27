@@ -121,6 +121,13 @@ from uuid import uuid4
 #
 # Services Classes
 #
+class Subsegment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    name = models.CharField(max_length=50,unique=True)
+    is_active = models.BooleanField(default=True)
+    def __str__(self):
+        return self.name
+
 class Unit (models.TextChoices):
     USD = "USD",
     COP = "COP"
@@ -189,6 +196,11 @@ class ReferencePrice(models.Model):
         primary_key=True,
         default=uuid4,
         editable=False
+    )
+    subsegment = models.ForeignKey(
+        Subsegment,
+        on_delete=models.PROTECT,
+        related_name='reference_prices',
     )
     region = models.ForeignKey(
         Region,
@@ -309,12 +321,7 @@ class UserProfile(models.Model):
         return f"{self.user.username} - {self.area} - {self.cargo}"
 
 
-class Subsegment(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    name = models.CharField(max_length=50,unique=True)
-    is_active = models.BooleanField(default=True)
-    def __str__(self):
-        return self.name
+
 
 
 class Client(models.Model):
