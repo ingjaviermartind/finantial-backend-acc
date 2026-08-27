@@ -107,6 +107,25 @@ from django.shortcuts import get_object_or_404
 #
 # Services view sets
 #
+import math
+from dataclasses import asdict
+
+
+def replace_nan(value):
+    if isinstance(value, float):
+        return None if math.isnan(value) else value
+    if isinstance(value, dict):
+        return {
+            key: replace_nan(val)
+            for key, val in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            replace_nan(item)
+            for item in value
+        ]
+    return value
+
 class DepartmentViewSet(ModelViewSet):
     authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
@@ -226,7 +245,8 @@ class PricingViewSet(viewsets.ViewSet):
             project=prj,
             user=request.user
         )
-        return Response(asdict(result))
+        response_data = replace_nan(asdict(result))
+        return Response(response_data)
 
 #
 # Auth
