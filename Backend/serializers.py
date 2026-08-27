@@ -127,7 +127,7 @@ class MunicipalitySerializer(serializers.Serializer):
 class PricingRequestSerializer(serializers.Serializer):
     municipality_id = serializers.UUIDField()
     product_id = serializers.CharField()
-    subsegment = serializers.CharField()
+    subsegment_id = serializers.CharField()
     capacity_mbps = serializers.FloatField(min_value=1)
     contract_time = serializers.IntegerField(min_value=1)
     initial_income = serializers.FloatField(default=0)
@@ -178,6 +178,16 @@ class ProductCatalogSerializer(serializers.ModelSerializer):
             'id',
             'product_type',
             'product'
+        ]
+
+class SubsegmentSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    class Meta:
+        model = models.Subsegment
+        fields = [
+            'id',
+            'name'
         ]
 
 #

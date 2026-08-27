@@ -9,8 +9,9 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from . import filters
 
+from django.db import transaction
+
 from . import models
-from Backend.services import services
 from . import serializers
 from .permissions import IsPricing
 from .permissions import IsAdmin
@@ -18,6 +19,7 @@ from .permissions import IsPricingOrAdmin
 
 from Backend.services import active_ser_service
 from Backend.services.pricing_service import PricingService
+from Backend.services.quote_log_service import QuoteLogService
 from Backend.dtos.Project import Project
 
 from dataclasses import asdict
@@ -35,6 +37,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
 from rest_framework.viewsets import ReadOnlyModelViewSet
+
+from Backend.dtos.PricingRecommendation import PricingRecommendation
+
+from django.shortcuts import get_object_or_404
 
 # class PriceViewSet(ModelViewSet):
 #     queryset = models.Price.objects.all()
@@ -104,7 +110,12 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 class DepartmentViewSet(ModelViewSet):
     authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
-    queryset = models.Department.objects.all()
+    queryset = models.Department.objects.exclude(
+        name__in=[
+            'AMAZONAS',
+            'ARCHIPIELAGO DE SAN ANDRES'
+        ]
+    ).order_by('name')
     serializer_class = serializers.DepartmentSerializer
 
 class MunicipalityViewSet(ModelViewSet):
@@ -163,17 +174,9 @@ class ProductCatalogViewSet(ReadOnlyModelViewSet):
 
 class SubsegmentViewSet(ReadOnlyModelViewSet):
     authentication_classes = [JWTAuthentication]
-    def list(self, request):
-        subsegments = (
-            models.Client.objects
-            .exclude(subsegment__isnull=True)
-            .exclude(subsegment='No Aplica')
-            # .exclude(subsegment='Wholesale')
-            .values_list('subsegment', flat=True)
-            .distinct()
-            .order_by('subsegment')
-        )
-        return Response(subsegments)
+    queryset = models.Subsegment.objects.filter(is_active=True)
+    serializer_class = serializers.SubsegmentSerializer
+
 
 class PricingViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
@@ -192,6 +195,9 @@ class PricingViewSet(viewsets.ViewSet):
         product = models.ProductCatalog.objects.get(
             id=data['product_id']
         )
+        subsegment = models.Subsegment.objects.get(
+            id=data['subsegment_id']
+        )
         print(
             f"{user_name} evaluó "
             f"el producto {product.product} ({product.product_type}) "
@@ -206,11 +212,19 @@ class PricingViewSet(viewsets.ViewSet):
             initial_income=data['initial_income'],
             product_type=product.product_type,
             product=product.product,
-            subsegment=data['subsegment']
+            subsegment=subsegment.name
         )
-        result = PricingService.evaluate(
+        result : PricingRecommendation = PricingService.evaluate(
             data['municipality_id'],
             prj
+        )
+        QuoteLogService.create(
+            result=result,
+            municipality=municipality,
+            product=product,
+            subsegment=subsegment,
+            project=prj,
+            user=request.user
         )
         return Response(asdict(result))
 

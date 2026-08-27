@@ -40,18 +40,18 @@ def predict_vlr_mbps_nw(capacity : float, municipality, contract_time : float, t
         fill_value=0
     )
 
-    print("\n========== PREDICCIÓN ==========")
-    print("Producto:", producto)
-    print("Tipo:", tipo_producto)
-    print("Subsegment:", subsegment)
-    print("\nDummies:")
-    print(X.filter(regex="TIPO_PRODUCTO|PRODUCTO_|subsegment_").T)
+    # print("\n========== PREDICCIÓN ==========")
+    # print("Producto:", producto)
+    # print("Tipo:", tipo_producto)
+    # print("Subsegment:", subsegment)
+    # print("\nDummies:")
+    # print(X.filter(regex="TIPO_PRODUCTO|PRODUCTO_|subsegment_").T)
 
     log_vlr = model_nw.predict(X)[0]
 
-    print("\nLOG_VLR:", log_vlr)
-    print("VLR:", 10 ** log_vlr)
-    print("================================")
+    # print("\nLOG_VLR:", log_vlr)
+    # print("VLR:", 10 ** log_vlr)
+    # print("================================")
 
     return float(10 ** log_vlr)
 

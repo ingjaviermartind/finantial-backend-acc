@@ -11,6 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from Backend import models
 
+from django.db.models import F
+
 CAPACITY_GROUPS = [
     (2, 15, "2-15 Mbps"),
     (16, 74, "16-74 Mbps"),
@@ -48,8 +50,13 @@ def get_services_by_municipality(key, min_cap = 10):
                 'identification_number',
                 'verification_number',
                 'name',
-                'subsegment'
+                'subsegment__name'
             )
+        )
+        clients = clients.rename(
+            columns={
+                'subsegment__name': 'subsegment'
+            }
         )
         clients['NIT'] = clients.apply(
             lambda row: (
@@ -67,6 +74,8 @@ def get_services_by_municipality(key, min_cap = 10):
         df_active_services["subsegment"] = (
             df_active_services["subsegment"].fillna("Sin segmentar")
         )
+
+        
         
         df_active_services['Razón Social'] = (
             df_active_services['name']

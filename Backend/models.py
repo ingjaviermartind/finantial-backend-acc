@@ -4,6 +4,8 @@ from django.db.models import Q
 
 from django.contrib.auth.models import User
 
+from Backend.dtos.EvaluationResult import EvaluationResult
+
 from uuid import uuid4
 
 # class Price(models.Model):
@@ -307,17 +309,13 @@ class UserProfile(models.Model):
         return f"{self.user.username} - {self.area} - {self.cargo}"
 
 
+class Subsegment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    name = models.CharField(max_length=50,unique=True)
+    is_active = models.BooleanField(default=True)
+    def __str__(self):
+        return self.name
 
-class Subsegment(models.TextChoices):
-    NEGOCIOS = 'Negocios'
-    EMPRESAS = 'Empresas'
-    RESIDENCIAL = 'Residencial'
-    ISP = 'ISPs'
-    WHOLESALE = 'Wholesale'
-    GOBIERNO = 'Gobierno'
-    COMUNITARIO = 'Comunitario'
-    ZERO = '0'
-    N_A = 'No Aplica'
 
 class Client(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -327,10 +325,14 @@ class Client(models.Model):
     )
     identification_number = models.PositiveIntegerField(default = 0)
     name = models.CharField(max_length=50)
-    subsegment = models.CharField(
-        max_length=30,
-        choices=Subsegment.choices
+    subsegment = models.ForeignKey(
+        Subsegment,
+        on_delete=models.PROTECT,
+        related_name='clients',
+        null=True,
+        blank=True
     )
+    
     def __str__(self):
         return self.name
 
@@ -348,7 +350,7 @@ class Product(models.TextChoices):
     INTERNET_DEDICADO_SIN_UK = 'Internet Dedicado sin UK'
     INTERNET_SIMETRICO_EMP = 'Internet Simetrico Empresarial'
     RED_IP = 'Red IP'
-
+    IRU_CAPACIDAD = 'IRU de Capacidad'
 
 
 class ProductCatalog(models.Model):
@@ -366,6 +368,99 @@ class ProductCatalog(models.Model):
         unique_together = ("product_type", "product")
     def __str__(self):
         return f"{self.product_type} - {self.product}"
+
+class EvaluationResult(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    approved = models.BooleanField()
+    price_monthly = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+    price_per_mbps = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+    vpn = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+    tir = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+    payback = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+    margin = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+    sensitivity = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    cashflows = models.JSONField()
+
+    @classmethod
+    def from_dto(cls, result: EvaluationResult):
+        return cls(
+            approved=result.approved,
+            price_monthly=result.price_monthly,
+            price_per_mbps=result.price_per_mbps,
+            vpn=result.vpn,
+            tir=result.tir,
+            payback=result.payback,
+            margin=result.margin,
+            cashflows=result.cashflows,
+            sensitivity=result.sensitivity,
+        )
+
+class QuoteLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    municipality = models.ForeignKey(
+        Municipality,
+        on_delete=models.PROTECT
+    )
+    subsegment = models.ForeignKey(
+        Subsegment,
+        on_delete=models.PROTECT,
+        related_name='quote_logs'
+    )
+    product = models.ForeignKey(
+        ProductCatalog,
+        on_delete=models.PROTECT,
+        related_name='quote_logs'
+    )
+    capacity = models.FloatField()
+    contract_time = models.FloatField()
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='quote_logs'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    suggested_price = models.ForeignKey(
+        EvaluationResult,
+        on_delete=models.PROTECT,
+        related_name='suggested_price_quotes',
+    )
+
+    floor_price = models.ForeignKey(
+        EvaluationResult,
+        on_delete=models.CASCADE,
+        related_name='floor_price_quotes',
+    )
+
+    class Meta:
+        ordering = ['-created_at']
 #
 # EOF
 #
