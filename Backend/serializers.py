@@ -232,7 +232,220 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         validate_password(value)
         return value
-    
+
+
+class PricingSiteFilterSerializer(serializers.Serializer):
+    FUNNEL_STATUSES = [
+        "Cliente Acepta",
+        "Cliente no acepta",
+        "Devuelto mesa de control",
+        "Devuelto por Preventa",
+        "En validación comercial",
+        "En validación preventa",
+        "En validación pricing",
+        "Gestionado mesa de control",
+        "Negociación cliente",
+    ]
+
+    period_value = serializers.IntegerField(
+        required=False,
+        min_value=1
+    )
+    period_unit = serializers.ChoiceField(
+        required=False,
+        choices=[
+            'día(s)',
+            'semana(s)',
+            'mes(es)',
+            'trimeste(s)',
+            'año(s)'
+        ]
+    )
+    client = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    funnel_status = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=FUNNEL_STATUSES
+        ),
+        required=False
+    )
+    capacity_min = serializers.FloatField(
+        required=False,
+        min_value=0
+    )
+    capacity_max = serializers.FloatField(
+        required=False,
+        min_value=0
+    )
+    department = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    municipality = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    dane = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    product = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    plan = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    product_family = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    page = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        default=1
+    )
+    page_size = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=100,
+        default=50
+    )
+    def validate(self, attrs):
+        period_value = attrs.get("period_value")
+        period_unit = attrs.get("period_unit")
+        if period_value is not None and period_unit is None:
+            raise serializers.ValidationError(
+                "period_unit es requerido cuando se especifica period_value."
+            )
+        if period_unit is not None and period_value is None:
+            raise serializers.ValidationError(
+                "period_value es requerido cuando se especifica period_unit."
+            )
+        capacity_min = attrs.get("capacity_min")
+        capacity_max = attrs.get("capacity_max")
+        if (
+            capacity_min is not None
+            and capacity_max is not None
+            and capacity_min > capacity_max
+        ):
+            raise serializers.ValidationError(
+                "capacity_min no puede ser mayor que capacity_max."
+            )
+        return attrs
+
+class PricingSiteFilterOptionsSerializer(serializers.Serializer):
+
+    FUNNEL_STATUSES = [
+            "Cliente Acepta",
+            "Cliente no acepta",
+            "Devuelto mesa de control",
+            "Devuelto por Preventa",
+            "En validación comercial",
+            "En validación preventa",
+            "En validación pricing",
+            "Gestionado mesa de control",
+            "Negociación cliente",
+        ]
+
+    period_value = serializers.IntegerField(
+        required=False,
+        min_value=1
+    )
+
+    period_unit = serializers.ChoiceField(
+        required=False,
+        choices=[
+            "día(s)",
+            "semana(s)",
+            "mes(es)",
+            "trimestre(s)",
+            "año(s)",
+        ]
+    )
+
+    client = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    funnel_status = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=FUNNEL_STATUSES
+        ),
+        required=False
+    )
+
+    capacity_min = serializers.FloatField(
+        required=False,
+        min_value=0
+    )
+
+    capacity_max = serializers.FloatField(
+        required=False,
+        min_value=0
+    )
+
+    department = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    municipality = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    dane = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    product = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    plan = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    product_family = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+
+    def validate(self, attrs):
+        period_value = attrs.get("period_value")
+        period_unit = attrs.get("period_unit")
+
+        if period_value is not None and period_unit is None:
+            raise serializers.ValidationError(
+                "period_unit es requerido cuando se especifica period_value."
+            )
+
+        if period_unit is not None and period_value is None:
+            raise serializers.ValidationError(
+                "period_value es requerido cuando se especifica period_unit."
+            )
+
+        capacity_min = attrs.get("capacity_min")
+        capacity_max = attrs.get("capacity_max")
+
+        if (
+            capacity_min is not None
+            and capacity_max is not None
+            and capacity_min > capacity_max
+        ):
+            raise serializers.ValidationError(
+                "capacity_min no puede ser mayor que capacity_max."
+            )
+
+        return attrs
 #
 # EOF
 #
