@@ -233,7 +233,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         validate_password(value)
         return value
 
-
 class PricingSiteFilterSerializer(serializers.Serializer):
     FUNNEL_STATUSES = [
         "Cliente Acepta",
@@ -257,7 +256,7 @@ class PricingSiteFilterSerializer(serializers.Serializer):
             'día(s)',
             'semana(s)',
             'mes(es)',
-            'trimeste(s)',
+            'trimestre(s)',
             'año(s)'
         ]
     )

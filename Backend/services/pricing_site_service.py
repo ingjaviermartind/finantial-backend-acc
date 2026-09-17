@@ -45,39 +45,28 @@ class PricingSiteService:
             'page_size' : filters.page_size
         }
         query = text(pricing_site_queries.QUERY_PRICED_SITES)
+        expanding_params = [
+            "funnel_statuses",
+            "departments",
+            "municipalities",
+            "danes",
+            "products",
+            "plans",
+            "product_families",
+            "clients",
+        ]
         query = query.bindparams(
-            bindparam(
-                'funnel_statuses',
-                expanding=True
-            ),
-            bindparam(
-                'departments',
-                expanding=True
-            ),
-            bindparam(
-                'municipalities',
-                expanding=True
-            ),
-            bindparam(
-                'danes',
-                expanding=True
-            ),
-            bindparam(
-                'products',
-                expanding=True
-            ),
-            bindparam(
-                'plans',
-                expanding=True
-            ),
-            bindparam(
-                'product_families',
-                expanding=True
-            ),
-            bindparam(
-                'clients',
-                expanding=True
-            )
+            *[
+                bindparam(param, expanding=True)
+                for param in expanding_params
+            ]
+        )
+        query_count = text(pricing_site_queries.QUERY_PRICED_SITES_COUNT)
+        query_count = query_count.bindparams(
+            *[
+                bindparam(param, expanding=True)
+                for param in expanding_params
+            ]
         )
         with engine.connect() as connection:
             result = connection.execute(
@@ -85,7 +74,13 @@ class PricingSiteService:
                 params
             )
             rows = result.mappings().all()
-            total_count = rows[0]["TOTAL_COUNT"] if rows else 0
+            count_result = connection.execute(
+                query_count,
+                params
+            )
+            count_row = count_result.mappings().one()
+            total_funnel_count = count_row["TOTAL_FUNNELS"] if count_row else 0
+            total_sede_count = count_row["TOTAL_SEDES"] if count_row else 0
             results = [
                 {
                     key: value
@@ -95,11 +90,12 @@ class PricingSiteService:
                 for row in rows
             ]
             return {
-                "count": total_count,
+                "funnel count": total_funnel_count,
+                'sedes count' : total_sede_count,
                 "page": filters.page,
                 "page_size": filters.page_size,
                 "total_pages": (
-                    (total_count + filters.page_size - 1)
+                    (total_funnel_count + filters.page_size - 1)
                     // filters.page_size
                 ),
                 "results": results,
@@ -140,7 +136,6 @@ class PricingSiteService:
             "product_families",
         ]
         create_query = text(pricing_site_queries.QUERY_FILTER_OPTIONS_CREATE_BASE)
-
         # Query INSERT sí tiene parámetros
         insert_query = text(
             pricing_site_queries.QUERY_FILTER_OPTIONS_INSERT_BASE

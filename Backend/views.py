@@ -313,6 +313,11 @@ class health(APIView):
     )
 
 class PricingSiteViewSet(viewsets.ViewSet):
+    # authentication_classes = [JWTAuthentication]
+    authentication_classes = []
+    # permission_classes = [IsPricingOrAdmin]
+    permission_classes = []
+    
     def list(self, request):
         filters = self._get_filters(request)
         result = PricingSiteService.get_priced_sites(filters)
