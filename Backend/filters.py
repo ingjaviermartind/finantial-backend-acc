@@ -17,6 +17,7 @@ class PricingSiteFilters:
     period_value: int | None = None
     period_unit: str | None = None
     clients: list[str] = field(default_factory=list)
+    funnels : list[str] = field(default_factory=list)
     funnel_statuses: list[str] = field(default_factory=list)
     capacity_min: float | None = None
     capacity_max: float | None = None

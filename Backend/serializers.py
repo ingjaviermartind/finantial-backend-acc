@@ -264,6 +264,10 @@ class PricingSiteFilterSerializer(serializers.Serializer):
         child=serializers.CharField(),
         required=False
     )
+    funnel = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
     funnel_status = serializers.ListField(
         child=serializers.ChoiceField(
             choices=FUNNEL_STATUSES

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
+from django.http import HttpResponse
 
 from django_filters.rest_framework import DjangoFilterBackend
 from . import filters
@@ -348,7 +349,25 @@ class PricingSiteViewSet(viewsets.ViewSet):
         )
         result = PricingSiteService.get_filter_options(filter_option)
         return Response(result)
-
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="export"
+    )
+    def export(self, request):
+        filters = self._get_filters(request)
+        excel_file = PricingSiteService.export_priced_sites(filters)
+        response = HttpResponse(
+            excel_file,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            )
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="pricing_sites.xlsx"'
+        )
+        return response
     @action(
         detail=True,
         methods=["get"],
@@ -370,6 +389,7 @@ class PricingSiteViewSet(viewsets.ViewSet):
             period_value=data.get('period_value'),
             period_unit=data.get('period_unit'),
             clients=data.get('client', []),
+            funnels=data.get('funnel', []),
             funnel_statuses=data.get('funnel_status', []),
             capacity_min=data.get('capacity_min'),
             capacity_max=data.get('capacity_max'),
