@@ -85,33 +85,33 @@ class PricingSiteService:
             total_start = time.perf_counter()
             start = time.perf_counter()
             connection.execute(query_create)
-            print(
-                f"[PRICING SITES] CREATE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] CREATE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             connection.execute(
                 query_insert,
                 params
             )
-            print(
-                f"[PRICING SITES] INSERT BASE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] INSERT BASE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             measures_result = connection.execute(
                 query_measures
             )
-            print(
-                f"[PRICING SITES] MEASURES EXECUTE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] MEASURES EXECUTE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             measures_row = measures_result.mappings().one()
-            print(
-                f"[PRICING SITES] MEASURES FETCH: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] MEASURES FETCH: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             total_funnel_count = measures_row["TOTAL_FUNNELS"]
             total_sede_count = measures_row["TOTAL_SEDES"]
             total_mrc = measures_row["TOTAL_MRC"]
@@ -123,32 +123,32 @@ class PricingSiteService:
                     "page_size": filters.page_size,
                 }
             )
-            print(
-                f"[PRICING SITES] PAGINATION EXECUTE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] PAGINATION EXECUTE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             rows = result.mappings().all()
-            print(
-                f"[PRICING SITES] ROWS FETCHED: {len(rows)}"
-            )
-            print(
-                f"[PRICING SITES] PAGINATION FETCH: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] ROWS FETCHED: {len(rows)}"
+            # )
+            # print(
+            #     f"[PRICING SITES] PAGINATION FETCH: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             results = [
                 dict(row)
                 for row in rows
             ]
-            print(
-                f"[PRICING SITES] RESULTS BUILD: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
-            print(
-                f"[PRICING SITES] TOTAL SERVICE SQL/BACKEND: "
-                f"{time.perf_counter() - total_start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] RESULTS BUILD: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
+            # print(
+            #     f"[PRICING SITES] TOTAL SERVICE SQL/BACKEND: "
+            #     f"{time.perf_counter() - total_start:.3f} s"
+            # )
             return {
                 "funnel count": total_funnel_count,
                 "sedes count": total_sede_count,
@@ -224,34 +224,34 @@ class PricingSiteService:
         with engine.connect() as connection:
             start = time.perf_counter()
             connection.execute(query_create)
-            print(
-                f"[PRICING SITES] CREATE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] CREATE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             connection.execute(
                 query_insert,
                 params
             )
-            print(
-                f"[PRICING SITES] INSERT BASE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] INSERT BASE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             start = time.perf_counter()
             result = connection.execute(
                 text(pricing_site_queries.QUERY_PRICED_SITES_EXPORT)
             )
-            print(
-                f"[PRICING SITES] SELECT FROM BASE: "
-                f"{time.perf_counter() - start:.3f} s"
-            )
+            # print(
+            #     f"[PRICING SITES] SELECT FROM BASE: "
+            #     f"{time.perf_counter() - start:.3f} s"
+            # )
             rows = result.mappings().all()
         start = time.perf_counter()
         df = pd.DataFrame(rows)
-        print(
-            f"[PRICING SITES] CONVERT TO DATAFRAME: "
-            f"{time.perf_counter() - start:.3f} s"
-        )
+        # print(
+        #     f"[PRICING SITES] CONVERT TO DATAFRAME: "
+        #     f"{time.perf_counter() - start:.3f} s"
+        # )
         start = time.perf_counter()
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -260,15 +260,15 @@ class PricingSiteService:
                 index=False,
                 sheet_name="Sedes"
             )
-        print(
-            f"[PRICING SITES] CONVERT TO EXCEL: "
-            f"{time.perf_counter() - start:.3f} s"
-        )
+        # print(
+        #     f"[PRICING SITES] CONVERT TO EXCEL: "
+        #     f"{time.perf_counter() - start:.3f} s"
+        # )
         output.seek(0)
-        print(
-            f"[PRICING SITES] TOTAL SERVICE SQL/BACKEND: "
-            f"{time.perf_counter() - total_start:.3f} s"
-        )
+        # print(
+        #     f"[PRICING SITES] TOTAL SERVICE SQL/BACKEND: "
+        #     f"{time.perf_counter() - total_start:.3f} s"
+        # )
         return output
 
     @staticmethod
