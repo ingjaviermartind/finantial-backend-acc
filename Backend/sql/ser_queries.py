@@ -1,76 +1,76 @@
 
 QUERY_ACTIVE_SERVICES = """
-    WITH Servicios AS 
-    (
-        SELECT *, 
-            CASE 
-                WHEN DIGITO_VERIFICACION IS NULL 
-                    THEN CAST(NRO_IDENTIFICACION AS varchar(20)) 
-                ELSE CONCAT(NRO_IDENTIFICACION, '-', DIGITO_VERIFICACION) 
-            END AS NIT 
-        FROM DTM.SF_SERVICE_LEGV2 
-    ),
+WITH Servicios AS 
+(
+    SELECT *, 
+        CASE 
+            WHEN DIGITO_VERIFICACION IS NULL 
+                THEN CAST(NRO_IDENTIFICACION AS varchar(20)) 
+            ELSE CONCAT(NRO_IDENTIFICACION, '-', DIGITO_VERIFICACION) 
+        END AS NIT 
+    FROM DTM.SF_SERVICE_LEGV2 
+),
 
-    ServiciosActivos AS
-    (
-        SELECT *
-        FROM Servicios s
-        WHERE s.ESTADO_SER NOT IN ( 
-            'Cancelado', 
-            'Error', 
-            'En Proceso', 
-            'Declinado' 
-        )
-        AND s.TARIFA > 1
-    ),
-
-    TarifaCliente AS
-    (
-        SELECT
-            NIT,
-            SUM(TARIFA) AS TARIFA_TOTAL_CLIENTE
-        FROM ServiciosActivos
-        GROUP BY NIT
+ServiciosActivos AS
+(
+    SELECT *
+    FROM Servicios s
+    WHERE s.ESTADO_SER NOT IN ( 
+        'Cancelado', 
+        'Error', 
+        'En Proceso', 
+        'Declinado' 
     )
+    AND s.TARIFA > 1
+),
 
-    SELECT  
-        s.NIT, 
-        s.RAZON_SOCIAL AS [Razón Social], 
-        s.ANCHODEBANDA AS [Capacidad], 
-        s.CAPACIDADBPS, 
-        s.TARIFA AS [Tarifa], 
-        s.TARIFA / s.CAPACIDADBPS AS [Vlr x Mbps], 
-        s.FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia],
-        s.PRODUCTO AS Producto,
-        tc.TARIFA_TOTAL_CLIENTE AS [Tarifa Total Cliente]
+TarifaCliente AS
+(
+    SELECT
+        NIT,
+        SUM(TARIFA) AS TARIFA_TOTAL_CLIENTE
+    FROM ServiciosActivos
+    GROUP BY NIT
+)
 
-    FROM ServiciosActivos s
+SELECT  
+    s.NIT, 
+    s.RAZON_SOCIAL AS [Razón Social], 
+    s.ANCHODEBANDA AS [Capacidad], 
+    s.CAPACIDADBPS, 
+    s.TARIFA AS [Tarifa], 
+    s.TARIFA / s.CAPACIDADBPS AS [Vlr x Mbps], 
+    s.FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia],
+    s.PRODUCTO AS Producto,
+    tc.TARIFA_TOTAL_CLIENTE AS [Tarifa Total Cliente]
 
-    LEFT JOIN TarifaCliente tc
-        ON s.NIT = tc.NIT
+FROM ServiciosActivos s
 
-    WHERE
-        s.SER NOT IN ('SER-280627') 
-        AND s.[PLAN] IN (
-            'CANAL NACIONAL ETHERNET',
-            'IRU DE CAPACIDAD',
-            'CANAL NACIONAL ETHERNET SIN UK',
-            'ID CORPORATIVO',
-            'INTERNET DEDICADO SIN UK',
-            'INTERNET DEDICADO SIN UK BURST',
-            'INTERNET DEDICADO EMPRESARIAL',
-            'RED IP',
-            'TRELUS INTERNET DEDICADO',
-            'INTERNET SIMETRICO EMPRESARIAL',
-            'BA CORPORATIVA',
-            'INTERNET + ALTO VALOR ESTRATO(1-3)',
-            'INTERNET + ALTO VALOR ESTRATO(4-6)',
-            'INTERNET +'
-        )
-        AND s.CAPACIDADBPS >= :min_cap
-        AND s.[Codigo DANE] = :dane 
+LEFT JOIN TarifaCliente tc
+    ON s.NIT = tc.NIT
 
-    ORDER BY s.CAPACIDADBPS DESC;
+WHERE
+    s.SER NOT IN ('SER-280627') 
+    AND s.[PLAN] IN (
+        'CANAL NACIONAL ETHERNET',
+        'IRU DE CAPACIDAD',
+        'CANAL NACIONAL ETHERNET SIN UK',
+        'ID CORPORATIVO',
+        'INTERNET DEDICADO SIN UK',
+        'INTERNET DEDICADO SIN UK BURST',
+        'INTERNET DEDICADO EMPRESARIAL',
+        'RED IP',
+        'TRELUS INTERNET DEDICADO',
+        'INTERNET SIMETRICO EMPRESARIAL',
+        'BA CORPORATIVA',
+        'INTERNET + ALTO VALOR ESTRATO(1-3)',
+        'INTERNET + ALTO VALOR ESTRATO(4-6)',
+        'INTERNET +'
+    )
+    AND s.CAPACIDADBPS >= :min_cap
+    AND s.[Codigo DANE] = :dane 
+
+ORDER BY s.CAPACIDADBPS DESC;
         """
 
 QUERY_SERVICES_REFERENCE_MUN = """

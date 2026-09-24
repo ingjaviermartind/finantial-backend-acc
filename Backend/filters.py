@@ -2,12 +2,11 @@ import django_filters
 from . import models
 from dataclasses import dataclass, field
 
+class UUIDInFilter(django_filters.BaseInFilter, django_filters.UUIDFilter):
+    pass
+
 class MunicipalityFilter(django_filters.FilterSet):
-
-    department = django_filters.UUIDFilter(
-        field_name='department_id'
-    )
-
+    department = UUIDInFilter(field_name='department_id')
     class Meta:
         model = models.Municipality
         fields = ['department']
