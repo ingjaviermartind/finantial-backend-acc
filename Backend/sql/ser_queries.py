@@ -73,6 +73,123 @@ WHERE
 ORDER BY s.CAPACIDADBPS DESC;
         """
 
+TEST = """
+DECLARE @DANE NVARCHAR(20) = '11001';
+DECLARE @FLIA_P NVARCHAR(255) = NULL;
+DECLARE @PRODUCT NVARCHAR(255) = NULL;
+DECLARE @PLAN NVARCHAR(255) = NULL;
+DECLARE @MIN_CAP INTEGER = 0
+DECLARE @MAX_CAP INTEGER = 30000
+DECLARE @CLIENT_NIT NVARCHAR(255) = NULL;
+
+WITH ServiciosActivos AS 
+(
+    SELECT 
+		s.SER,
+		s.Departamento,
+		s.Municipio,
+		s.[Codigo DANE],
+		s.TIPO_TECNOLOGIA,
+		ciclo.ULT_CICLO_FACT as Ciclo,
+		s.RAZON_SOCIAL,
+		s.ANCHODEBANDA,
+		s.CAPACIDADBPS,
+		s.TARIFA, 
+		s.FECHA_FIN_PERMANENCIA,
+		s.TARIFA / NULLIF(s.CAPACIDADBPS, 0) AS [Vlr x Mbps], 
+		s.FAMILIA_PRODUCTOS,
+		s.PRODUCTO,
+		s.[PLAN],
+		s.TIPO_PRODUCTO,
+        CASE 
+            WHEN s.DIGITO_VERIFICACION IS NULL 
+                THEN CAST(s.NRO_IDENTIFICACION AS varchar(20)) 
+            ELSE CONCAT(s.NRO_IDENTIFICACION, '-', s.DIGITO_VERIFICACION) 
+        END AS NIT
+    FROM DTM.SF_SERVICE_LEGV2 s
+	INNER JOIN DTM.CICLO_SERV_ACTIVOS_PLANTA ciclo
+		ON ciclo.SERVICIO = s.SER
+	WHERE s.ESTADO_SER NOT IN 
+	( 
+        'Cancelado', 
+        'Error', 
+        'En Proceso', 
+        'Declinado' 
+    )
+),
+TarifaCliente AS
+(
+    SELECT
+        NIT,
+        SUM(TARIFA) AS TARIFA_TOTAL_CLIENTE
+    FROM ServiciosActivos
+    GROUP BY NIT
+)
+SELECT  
+	s.SER,
+	s.Ciclo,
+	s.Departamento,
+	s.Municipio,
+	s.[Codigo DANE],
+    s.NIT,
+    s.RAZON_SOCIAL AS [Razón Social], 
+	tc.TARIFA_TOTAL_CLIENTE AS [Tarifa Total Cliente],
+    s.ANCHODEBANDA AS [Capacidad], 
+    s.CAPACIDADBPS,
+    s.TARIFA AS [Tarifa], 
+    s.[Vlr x Mbps],
+    s.FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia],
+	s.FAMILIA_PRODUCTOS,
+    s.PRODUCTO AS Producto,
+	s.[PLAN],
+	s.TIPO_TECNOLOGIA
+FROM ServiciosActivos s
+LEFT JOIN TarifaCliente tc
+    ON s.NIT = tc.NIT
+WHERE s.TIPO_PRODUCTO IN 
+(
+	'L2',
+	'L3'
+)
+AND s.TARIFA > 1
+AND s.SER <> 'SER-280627' 
+AND (
+	@DANE IS NULL
+	OR s.[Codigo DANE] = @DANE
+)
+AND 
+(
+	@FLIA_P IS NULL
+	OR s.FAMILIA_PRODUCTOS = @FLIA_P
+)
+AND 
+(
+	@PRODUCT IS NULL
+	OR s.PRODUCTO = @PRODUCT
+)
+AND
+(
+	@PLAN IS NULL 
+	OR s.[PLAN] = @PLAN
+)
+AND 
+(
+	@MIN_CAP IS NULL
+	OR s.CAPACIDADBPS >= @MIN_CAP
+)
+AND
+(
+	@MAX_CAP IS NULL
+	OR s.CAPACIDADBPS <= @MAX_CAP
+)
+AND 
+(
+	@CLIENT_NIT IS NULL
+	OR s.NIT = @CLIENT_NIT
+)
+ORDER BY s.CAPACIDADBPS DESC;
+"""
+
 QUERY_SERVICES_REFERENCE_MUN = """
 WITH Servicios AS
 (
