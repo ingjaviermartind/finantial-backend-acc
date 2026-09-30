@@ -150,7 +150,19 @@ class MunicipalityViewSet(ModelViewSet):
 
 class ServicesViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
-    # permission_classes = [IsAuthenticated]
+    def list(self, request):
+        user_name = (
+            request.user.get_full_name()
+            or request.user.username
+        )
+        service_filters = self._get_filters(request)
+        print(
+            f"{user_name} consultó servicios de "
+            f"{len(service_filters.municipalities)} municipios"
+        )
+        result = active_ser_service.get_services(service_filters)
+        return Response(result)
+    
     def retrieve(self, request, pk=None):
         user = request.user
         user_name = request.user.get_full_name() or request.user.username
@@ -170,6 +182,20 @@ class ServicesViewSet(viewsets.ViewSet):
         return Response(
             result,
             status=status.HTTP_200_OK
+        )
+    def _get_filters(self, request):
+        serializer = serializers.ServiceFilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        return filters.ServiceFilters(
+            clients=data.get("client", []),
+            capacity_min=data.get("capacity_min"),
+            capacity_max=data.get("capacity_max"),
+            municipalities=data.get("municipality", []),
+            products=data.get("product", []),
+            plans=data.get("plan", []),
+            product_families=data.get("product_family", []),
+            subsegments=data.get("subsegment", []),
         )
 
 class FinancialVariableViewSet(viewsets.ModelViewSet):
@@ -303,7 +329,6 @@ class ChangePasswordView(APIView):
 class health(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
-    
     def get(self, request):
         return Response(
         {
@@ -315,10 +340,7 @@ class health(APIView):
 
 class PricingSiteViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
-    # authentication_classes = []
     permission_classes = [IsPricingOrAdmin]
-    # permission_classes = []
-    
     def list(self, request):
         filters = self._get_filters(request)
         result = PricingSiteService.get_priced_sites(filters)

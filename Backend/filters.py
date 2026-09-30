@@ -44,3 +44,14 @@ class PricingSiteFilterOptions:
     products: list[str] = field(default_factory=list)
     plans: list[str] = field(default_factory=list)
     product_families: list[str] = field(default_factory=list)
+
+@dataclass
+class ServiceFilters:
+    clients: list[str] = field(default_factory=list)
+    capacity_min: float | None = None
+    capacity_max: float | None = None
+    municipalities: list[str] = field(default_factory=list)
+    products: list[str] = field(default_factory=list)
+    plans: list[str] = field(default_factory=list)
+    product_families: list[str] = field(default_factory=list)
+    subsegments: list[str] = field(default_factory=list)

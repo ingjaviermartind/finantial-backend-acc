@@ -73,15 +73,7 @@ WHERE
 ORDER BY s.CAPACIDADBPS DESC;
         """
 
-TEST = """
-DECLARE @DANE NVARCHAR(20) = '11001';
-DECLARE @FLIA_P NVARCHAR(255) = NULL;
-DECLARE @PRODUCT NVARCHAR(255) = NULL;
-DECLARE @PLAN NVARCHAR(255) = NULL;
-DECLARE @MIN_CAP INTEGER = 0
-DECLARE @MAX_CAP INTEGER = 30000
-DECLARE @CLIENT_NIT NVARCHAR(255) = NULL;
-
+QUERY_ACTIVE_SERVICES_V2 = """
 WITH ServiciosActivos AS 
 (
     SELECT 
@@ -101,13 +93,15 @@ WITH ServiciosActivos AS
 		s.PRODUCTO,
 		s.[PLAN],
 		s.TIPO_PRODUCTO,
+        s.TipodePunto,
+        s.NvoSubsegmento,
         CASE 
             WHEN s.DIGITO_VERIFICACION IS NULL 
                 THEN CAST(s.NRO_IDENTIFICACION AS varchar(20)) 
             ELSE CONCAT(s.NRO_IDENTIFICACION, '-', s.DIGITO_VERIFICACION) 
         END AS NIT
     FROM DTM.SF_SERVICE_LEGV2 s
-	INNER JOIN DTM.CICLO_SERV_ACTIVOS_PLANTA ciclo
+	LEFT JOIN DTM.CICLO_SERV_ACTIVOS_PLANTA ciclo
 		ON ciclo.SERVICIO = s.SER
 	WHERE s.ESTADO_SER NOT IN 
 	( 
@@ -142,7 +136,8 @@ SELECT
 	s.FAMILIA_PRODUCTOS,
     s.PRODUCTO AS Producto,
 	s.[PLAN],
-	s.TIPO_TECNOLOGIA
+	s.TIPO_TECNOLOGIA,
+    s.NvoSubsegmento as Subsegmento
 FROM ServiciosActivos s
 LEFT JOIN TarifaCliente tc
     ON s.NIT = tc.NIT
@@ -151,41 +146,48 @@ WHERE s.TIPO_PRODUCTO IN
 	'L2',
 	'L3'
 )
+AND s.TipodePunto NOT IN 
+( 
+    'Interconexion',
+    'Interconexión - IRU',
+    'Interconexion Backup'
+)
 AND s.TARIFA > 1
 AND s.SER <> 'SER-280627' 
+AND s.[Codigo DANE] IN :danes
+AND 
+(
+	:filter_product_family = 0
+	OR s.FAMILIA_PRODUCTOS IN :product_families
+)
+AND 
+(
+	:filter_product = 0
+	OR s.PRODUCTO IN :products
+)
+AND
+(
+	:filter_plan = 0
+	OR s.[PLAN] IN :plans
+)
+AND 
+(
+    :capacity_max IS NULL
+    OR s.CAPACIDADBPS <= :capacity_max
+)
 AND (
-	@DANE IS NULL
-	OR s.[Codigo DANE] = @DANE
+    :capacity_min IS NULL
+    OR s.CAPACIDADBPS >= :capacity_min
 )
 AND 
 (
-	@FLIA_P IS NULL
-	OR s.FAMILIA_PRODUCTOS = @FLIA_P
+	:filter_client = 0
+	OR s.NIT IN :clients
 )
 AND 
 (
-	@PRODUCT IS NULL
-	OR s.PRODUCTO = @PRODUCT
-)
-AND
-(
-	@PLAN IS NULL 
-	OR s.[PLAN] = @PLAN
-)
-AND 
-(
-	@MIN_CAP IS NULL
-	OR s.CAPACIDADBPS >= @MIN_CAP
-)
-AND
-(
-	@MAX_CAP IS NULL
-	OR s.CAPACIDADBPS <= @MAX_CAP
-)
-AND 
-(
-	@CLIENT_NIT IS NULL
-	OR s.NIT = @CLIENT_NIT
+    :filter_subsegment = 0
+    OR s.NvoSubsegmento IN :subsegments
 )
 ORDER BY s.CAPACIDADBPS DESC;
 """

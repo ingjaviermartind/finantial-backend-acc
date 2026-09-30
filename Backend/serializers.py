@@ -425,20 +425,16 @@ class PricingSiteFilterOptionsSerializer(serializers.Serializer):
     def validate(self, attrs):
         period_value = attrs.get("period_value")
         period_unit = attrs.get("period_unit")
-
         if period_value is not None and period_unit is None:
             raise serializers.ValidationError(
                 "period_unit es requerido cuando se especifica period_value."
             )
-
         if period_unit is not None and period_value is None:
             raise serializers.ValidationError(
                 "period_value es requerido cuando se especifica period_unit."
             )
-
         capacity_min = attrs.get("capacity_min")
         capacity_max = attrs.get("capacity_max")
-
         if (
             capacity_min is not None
             and capacity_max is not None
@@ -447,7 +443,50 @@ class PricingSiteFilterOptionsSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "capacity_min no puede ser mayor que capacity_max."
             )
+        return attrs
 
+class ServiceFilterSerializer(serializers.Serializer): 
+    subsegment = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    client = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    capacity_min = serializers.FloatField(
+        required=False,
+        min_value=0
+    )
+    capacity_max = serializers.FloatField(
+        required=False,
+        min_value=0
+    )
+    municipality = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    product = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    plan = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    product_family = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    def validate(self, attrs):
+        capacity_min = attrs.get("capacity_min")
+        capacity_max = attrs.get("capacity_max")
+        if (
+            capacity_min is not None
+            and capacity_max is not None
+            and capacity_min > capacity_max
+        ):
+            raise serializers.ValidationError("capacity_min no puede ser mayor que capacity_max.")
         return attrs
 #
 # EOF

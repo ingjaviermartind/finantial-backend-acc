@@ -5,7 +5,7 @@ from Backend.dtos.MarketReference import MarketReference
 
 from Backend.sql import ser_queries
 from Backend.sql.database import engine
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
 from sqlalchemy.exc import SQLAlchemyError
 
 from Backend import models
@@ -32,6 +32,92 @@ def get_capacity_group(capacity):
 
     return None
 
+@staticmethod
+def get_services(filters):
+    try:
+        municipalities = models.Municipality.objects.filter(id__in=filters.municipalities)
+        danes = list(
+            municipalities.values_list(
+                "dane",
+                flat=True
+            )
+        )
+        params = {
+            "capacity_min": filters.capacity_min,
+            "capacity_max": filters.capacity_max,
+            "danes": danes,
+            "filter_product_family": (1 if filters.product_families else 0),
+            "product_families": filters.product_families,
+            "filter_product": 1 if filters.products else 0,
+            "products": filters.products,
+            "filter_plan": 1 if filters.plans else 0,
+            "plans": filters.plans,
+            "filter_client": 1 if filters.clients else 0,
+            "clients": filters.clients,
+            "filter_subsegment": (1 if filters.subsegments else 0),
+            "subsegments": filters.subsegments,
+        }
+        expanding_params = [
+            "danes",
+            "product_families",
+            "products",
+            "plans",
+            "clients",
+            "subsegments",
+        ]
+        query = text(ser_queries.QUERY_ACTIVE_SERVICES_V2).bindparams(
+            *[
+                bindparam(param, expanding=True)
+                for param in expanding_params
+            ]
+        )
+        df_active_services = pd.read_sql(
+            query,
+            engine,
+            params=params
+        )
+        capacity = pd.to_numeric(
+            df_active_services["CAPACIDADBPS"],
+            errors="coerce"
+        )
+        df_active_services = (
+            df_active_services
+            .astype(object)
+            .where(
+                pd.notna(df_active_services),
+                None
+            )
+        )
+        df_active_services["Producto"] = (
+            df_active_services["Producto"]
+            .str.title()
+            .str.replace("Id", "ID", regex=False)
+            .str.replace("Ip", "IP", regex=False)
+            .str.replace("Iru", "IRU", regex=False)
+            .str.replace("Uk", "UK", regex=False)
+            .str.replace("Ba", "BA", regex=False)
+        )
+        return {
+            "success": True,
+            "data": df_active_services.to_dict(
+                orient="records"
+            )
+        }
+    except SQLAlchemyError as e:
+        print("SQLALCHEMY ERROR:", repr(e))
+        return {
+            "success": False,
+            "code": "DATABASE_ERROR",
+            "message": "Error consultando la base de datos."
+        }
+    except Exception as e:
+        print("UNKNOWN ERROR:", type(e), repr(e))
+        return {
+            "success": False,
+            "code": "UNKNOWN_ERROR",
+            "message": "Error inesperado."
+        }
+    
 @staticmethod
 def get_services_by_municipality(key, min_cap = 10):
     try:
