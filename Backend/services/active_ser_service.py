@@ -96,6 +96,7 @@ def get_services(filters):
             .str.replace("Iru", "IRU", regex=False)
             .str.replace("Uk", "UK", regex=False)
             .str.replace("Ba", "BA", regex=False)
+            .str.replace("De", "de", regex=False)
         )
         return {
             "success": True,
