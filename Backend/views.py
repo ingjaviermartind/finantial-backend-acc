@@ -45,6 +45,8 @@ from Backend.dtos.PricingRecommendation import PricingRecommendation
 
 from django.shortcuts import get_object_or_404
 
+from django.db.models import Exists, OuterRef
+
 # class PriceViewSet(ModelViewSet):
 #     queryset = models.Price.objects.all()
 #     serializer_class = serializers.PriceSerializer
@@ -131,12 +133,18 @@ def replace_nan(value):
 
 class DepartmentViewSet(ModelViewSet):
     authentication_classes = [JWTAuthentication]
+    municipalities_unprofitable = models.Municipality.objects.filter(
+        department=OuterRef('pk'),
+        unprofitable=True
+    )
     # permission_classes = [IsAuthenticated]
     queryset = models.Department.objects.exclude(
         name__in=[
             'AMAZONAS',
             'ARCHIPIELAGO DE SAN ANDRES'
         ]
+    ).annotate(
+        unprofitable=Exists(municipalities_unprofitable)
     ).order_by('name')
     serializer_class = serializers.DepartmentSerializer
 

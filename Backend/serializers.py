@@ -98,11 +98,13 @@ from django.contrib.auth.models import update_last_login
 class DepartmentSerializer(serializers.Serializer):
     name = serializers.CharField()
     id = serializers.UUIDField()
+    unprofitable = serializers.BooleanField()
     class Meta:
         model = models.Department
         fields = [
             'id',
-            'name'
+            'name',
+            'unprofitable'
         ]
 
 class MunicipalitySerializer(serializers.Serializer):
