@@ -114,6 +114,7 @@ class MunicipalitySerializer(serializers.Serializer):
         allow_null=True
     )
     node = serializers.CharField(allow_null=True)
+    unprofitable = serializers.BooleanField()
     class Meta:
         model = models.Municipality
         fields = [
@@ -121,7 +122,8 @@ class MunicipalitySerializer(serializers.Serializer):
             'name',
             'dane',
             'region',
-            'node'
+            'node',
+            'unprofitable'
         ]
 
 class PricingRequestSerializer(serializers.Serializer):

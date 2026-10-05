@@ -135,7 +135,7 @@ SELECT
     s.FECHA_FIN_PERMANENCIA AS [Fecha Fin Permanencia],
 	s.FAMILIA_PRODUCTOS,
     s.PRODUCTO AS Producto,
-	s.[PLAN],
+	s.[PLAN] AS [Plan],
 	s.TIPO_TECNOLOGIA,
     s.NvoSubsegmento as Subsegmento
 FROM ServiciosActivos s
@@ -146,11 +146,14 @@ WHERE s.TIPO_PRODUCTO IN
 	'L2',
 	'L3'
 )
-AND s.TipodePunto NOT IN 
-( 
-    'Interconexion',
-    'Interconexión - IRU',
-    'Interconexion Backup'
+AND (
+    s.TipodePunto NOT IN 
+    ( 
+        'Interconexion',
+        'Interconexión - IRU',
+        'Interconexion Backup'
+    )
+    OR s.TipodePunto IS NULL
 )
 AND s.TARIFA > 1
 AND s.SER <> 'SER-280627' 
