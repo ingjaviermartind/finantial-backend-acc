@@ -42,6 +42,17 @@ def get_services(filters):
                 flat=True
             )
         )
+        municipality_data = {
+            str(m["dane"]).zfill(5): {
+                "unprofitable": m["unprofitable"],
+                "node": m["node"],
+            }
+            for m in municipalities.values(
+                "dane",
+                "unprofitable",
+                "node",
+            )
+        }
         params = {
             "capacity_min": filters.capacity_min,
             "capacity_max": filters.capacity_max,
@@ -76,10 +87,6 @@ def get_services(filters):
             engine,
             params=params
         )
-        capacity = pd.to_numeric(
-            df_active_services["CAPACIDADBPS"],
-            errors="coerce"
-        )
         df_active_services = (
             df_active_services
             .astype(object)
@@ -88,6 +95,31 @@ def get_services(filters):
                 None
             )
         )
+        df_active_services["DANE_JOIN"] = (
+            df_active_services["Codigo DANE"]
+            .astype(str)
+            .str.strip()
+            .str.zfill(5)
+        )
+        df_active_services["unprofitable"] = (
+            df_active_services["DANE_JOIN"]
+            .map(
+                lambda dane: municipality_data.get(
+                    dane,
+                    {}
+                ).get("unprofitable", False)
+            )
+        )
+        df_active_services["node"] = (
+            df_active_services["DANE_JOIN"]
+            .map(
+                lambda dane: municipality_data.get(
+                    dane,
+                    {}
+                ).get("node")
+            )
+        )
+        df_active_services.drop(columns=["DANE_JOIN"], inplace=True)
         df_active_services["Producto"] = (
             df_active_services["Producto"]
             .str.title()
@@ -96,8 +128,10 @@ def get_services(filters):
             .str.replace("Iru", "IRU", regex=False)
             .str.replace("Uk", "UK", regex=False)
             .str.replace("Ba", "BA", regex=False)
-            .str.replace("De", "de", regex=False)
+            .str.replace("De ", "de ", regex=False)
+            .str.replace("Sin ", "sin ",regex=False)
         )
+        
         return {
             "success": True,
             "data": df_active_services.to_dict(
@@ -160,14 +194,10 @@ def get_services_by_municipality(key, min_cap = 10):
         df_active_services["subsegment"] = (
             df_active_services["subsegment"].fillna("Sin segmentar")
         )
-
-        
-        
         df_active_services['Razón Social'] = (
             df_active_services['name']
             .combine_first(df_active_services['Razón Social'])
         )
-        
         capacity = pd.to_numeric(
             df_active_services['CAPACIDADBPS'],
             errors='coerce'
