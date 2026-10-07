@@ -31,13 +31,8 @@ class PricingService:
         return PricingService.CAPACITY_GROUPS[0]
 
     @staticmethod
-    def evaluate(
-        municipality_id, 
-        prj : Project
-    ) -> PricingRecommendation:
-        municipality = models.Municipality.objects.select_related(
-            "department"
-        ).get(id=municipality_id)
+    def evaluate(municipality_id, prj : Project) -> PricingRecommendation:
+        municipality = models.Municipality.objects.select_related("department").get(id=municipality_id)
 
         vars = FinancialVariableService.get_variables()
         predicted_price_mpbs = predict_vlr_mbps_nw(prj.capacity_mbps, municipality, prj.contract_time, prj.product_type, prj.product, prj.subsegment)
@@ -65,6 +60,11 @@ class PricingService:
             ref_price_mbps_special=reference_price.get("SPECIAL"),
         )
 
+    @staticmethod
+    def evaluate_price(prj: Project, vlr_mbps):
+        vars = FinancialVariableService.get_variables()
+        result = financial_engine.evaluate_price_per_mbps(prj, vars, vlr_mbps)
+        return result
 
         
         

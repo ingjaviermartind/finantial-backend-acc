@@ -8,3 +8,4 @@ class Project:
     product_type: str
     product : str
     subsegment: str
+    initial_capex : float

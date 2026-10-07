@@ -7,7 +7,8 @@ import numpy_financial as npf
 class financial_engine:
     @staticmethod
     def calculate_capex(project : Project, variables : FinancialVariables) -> float:
-        return project.capacity_mbps * project.contract_time * variables.trm * variables.web_capex
+        capex = project.capacity_mbps * project.contract_time * variables.trm * variables.web_capex
+        return capex
 
     @staticmethod
     def calculate_opex(project : Project, variables : FinancialVariables) -> float:
@@ -23,9 +24,10 @@ class financial_engine:
 
     @staticmethod
     def evaluate_project(project : Project, variables : FinancialVariables, sensitivity) -> EvaluationResult:
-        capex = financial_engine.calculate_capex(project, variables)
+        capex = financial_engine.calculate_capex(project, variables) + project.initial_capex
         opex = financial_engine.calculate_opex(project, variables)
         price_monthly = ((capex + (opex * project.contract_time)) / project.contract_time) * sensitivity * variables.margin_factor
+        price_monthly = round(price_monthly / 1000) * 1000
         gmf = variables.gmf * price_monthly
         fontic = variables.fontic * price_monthly
         ica = variables.ica * price_monthly
@@ -88,7 +90,7 @@ class financial_engine:
     
     @staticmethod
     def evaluate_price_per_mbps(project : Project, variables : FinancialVariables, capacity_mbps : float) -> EvaluationResult:
-        capex = financial_engine.calculate_capex(project, variables)
+        capex = financial_engine.calculate_capex(project, variables) + project.initial_capex
         opex = financial_engine.calculate_opex(project, variables)
         price_monthly = capacity_mbps * project.capacity_mbps
         sensitivity = (

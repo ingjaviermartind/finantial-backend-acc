@@ -266,6 +266,7 @@ class PricingViewSet(viewsets.ViewSet):
             capacity_mbps=data['capacity_mbps'],
             contract_time=data['contract_time'],
             initial_income=data['initial_income'],
+            initial_capex=data['initial_capex'],
             product_type=product.product_type,
             product=product.product,
             subsegment=subsegment.name
@@ -285,6 +286,47 @@ class PricingViewSet(viewsets.ViewSet):
         response_data = replace_nan(asdict(result))
         return Response(response_data)
 
+    @action(detail=False, methods=['post'])
+    def evaluate_price(self, request):
+        user_name = (
+            request.user.get_full_name()
+            or request.user.username
+        )
+        serializer = serializers.PricingRequestSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        price_per_mbps = data.get('price_per_mbps')
+        if price_per_mbps is None:
+            return Response(
+                {'detail': 'price_per_mbps es requerido.'},
+                status=400
+            )
+        municipality = models.Municipality.objects.get(id=data['municipality_id'])
+        product = models.ProductCatalog.objects.get(id=data['product_id'])
+        subsegment = models.Subsegment.objects.get(id=data['subsegment_id'])
+        print(
+            f"{user_name} evaluó un precio de "
+            f"{price_per_mbps} COP/Mbps para "
+            f"el producto {product.product} ({product.product_type}) "
+            f"con una capacidad de {data['capacity_mbps']} Mbps a "
+            f"{data['contract_time']} meses en el municipio "
+            f"{municipality.name} del departamento "
+            f"{municipality.department.name}"
+        )
+        prj = Project(
+            capacity_mbps=data['capacity_mbps'],
+            contract_time=data['contract_time'],
+            initial_income=data['initial_income'],
+            initial_capex=data['initial_capex'],
+            product_type=product.product_type,
+            product=product.product,
+            subsegment=subsegment.name
+        )
+        result = PricingService.evaluate_price(prj, price_per_mbps)
+        response_data = replace_nan(asdict(result))
+        return Response(response_data)
 #
 # Auth
 #

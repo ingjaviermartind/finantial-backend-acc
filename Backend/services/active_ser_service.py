@@ -46,11 +46,13 @@ def get_services(filters):
             str(m["dane"]).zfill(5): {
                 "unprofitable": m["unprofitable"],
                 "node": m["node"],
+                "region": m["region__name"],
             }
             for m in municipalities.values(
                 "dane",
                 "unprofitable",
                 "node",
+                "region__name",
             )
         }
         params = {
@@ -117,6 +119,24 @@ def get_services(filters):
                     dane,
                     {}
                 ).get("node")
+            )
+        )
+        df_active_services["region"] = (
+            df_active_services["DANE_JOIN"]
+            .map(
+                lambda dane: municipality_data.get(
+                    dane,
+                    {}
+                ).get("region")
+            )
+        )
+        df_active_services["region"] = (
+            df_active_services["DANE_JOIN"]
+            .map(
+                lambda dane: municipality_data.get(
+                    dane,
+                    {}
+                ).get("region")
             )
         )
         df_active_services.drop(columns=["DANE_JOIN"], inplace=True)
