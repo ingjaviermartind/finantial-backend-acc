@@ -58,6 +58,8 @@ class PricingService:
             market_std=market.std_price_mbps,
             market_sample=market.sample_size,
             market_source=market.source,
+            monthly_wacc=vars.monthly_wacc,
+            wacc=vars.wacc,
             ref_price_mbps=reference_price.get("BASE"),
             ref_price_mbps_dis=reference_price.get("DISCOUNT"),
             ref_price_mbps_special=reference_price.get("SPECIAL"),

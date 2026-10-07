@@ -74,11 +74,14 @@ class financial_engine:
         )
         return EvaluationResult(
             approved=approved,
+            capex=capex,
+            opex_m=opex,
             price_monthly=price_monthly,
             price_per_mbps=price_monthly / project.capacity_mbps,
             vpn=vpn,
             tir=tir,
             payback=payback,
+            payback_percent = (payback / project.contract_time) if payback is not None else 0,
             margin=margin,
             cashflows=cashflows
         )

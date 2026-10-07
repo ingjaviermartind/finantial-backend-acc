@@ -23,7 +23,8 @@ class FinancialVariableService():
             fontic=variables["FONTIC"]/100,
             ica=variables["ICA"]/100,
             cartera=variables["PORTF"],
-            monthly_wacc=variables["WACC_M"]/100
+            monthly_wacc=variables["WACC_M"]/100,
+            wacc=variables["WACC_A"]/100
         )
     @staticmethod
     def update_variable(key: str, value: float):

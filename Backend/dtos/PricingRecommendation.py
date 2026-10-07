@@ -12,6 +12,8 @@ class PricingRecommendation:
     median_price_mbps: float
     market_std: float
     market_source: str
+    monthly_wacc: float
+    wacc: float
     market_sample: int
     ref_price_mbps: float
     ref_price_mbps_dis: float

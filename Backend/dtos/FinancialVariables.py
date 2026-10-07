@@ -17,3 +17,4 @@ class FinancialVariables:
     ica: float
     cartera: float
     monthly_wacc: float
+    wacc: float
