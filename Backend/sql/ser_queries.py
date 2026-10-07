@@ -195,6 +195,31 @@ AND
 ORDER BY s.CAPACIDADBPS DESC;
 """
 
+QUERY_ACTIVE_CLIENTS = """
+WITH ServiciosActivos AS 
+(
+    SELECT 
+		s.RAZON_SOCIAL,
+        CASE 
+            WHEN s.DIGITO_VERIFICACION IS NULL 
+                THEN CAST(s.NRO_IDENTIFICACION AS varchar(20)) 
+            ELSE CONCAT(s.NRO_IDENTIFICACION, '-', s.DIGITO_VERIFICACION) 
+        END AS NIT
+    FROM DTM.SF_SERVICE_LEGV2 s
+	WHERE s.ESTADO_SER NOT IN 
+	( 
+        'Cancelado', 
+        'Error', 
+        'En Proceso', 
+        'Declinado' 
+    )
+)
+SELECT DISTINCT
+NIT,
+RAZON_SOCIAL
+FROM ServiciosActivos;
+"""
+
 QUERY_SERVICES_REFERENCE_MUN = """
 WITH Servicios AS
 (

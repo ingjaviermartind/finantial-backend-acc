@@ -33,6 +33,49 @@ def get_capacity_group(capacity):
     return None
 
 @staticmethod
+def get_clients() : 
+    try:
+        query = text(ser_queries.QUERY_ACTIVE_CLIENTS)
+        df_active_clients = pd.read_sql(
+            query,
+            engine
+        )
+        clients = (
+            df_active_clients
+            .groupby("NIT", sort=True)["RAZON_SOCIAL"]
+            .apply(
+                lambda names: sorted(
+                    {
+                        name.strip()
+                        for name in names
+                        if pd.notna(name) and str(name).strip()
+                    }
+                )
+            ).reset_index(name="business_names")
+        )
+        return {
+            "success": True,
+            "data": clients.to_dict(
+                orient="records"
+            )
+        }
+    except SQLAlchemyError as e:
+        print("SQLALCHEMY ERROR:", repr(e))
+        return {
+            "success": False,
+            "code": "DATABASE_ERROR",
+            "message": "Error consultando la base de datos."
+        }
+    except Exception as e:
+        print("UNKNOWN ERROR:", type(e), repr(e))
+        return {
+            "success": False,
+            "code": "UNKNOWN_ERROR",
+            "message": "Error inesperado."
+        }
+
+
+@staticmethod
 def get_services(filters):
     try:
         municipalities = models.Municipality.objects.filter(id__in=filters.municipalities)
