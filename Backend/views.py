@@ -200,6 +200,7 @@ class ServicesViewSet(viewsets.ViewSet):
             capacity_min=data.get("capacity_min"),
             capacity_max=data.get("capacity_max"),
             municipalities=data.get("municipality", []),
+            departments=data.get("department", []),
             products=data.get("product", []),
             plans=data.get("plan", []),
             product_families=data.get("product_family", []),

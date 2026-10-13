@@ -468,6 +468,10 @@ class ServiceFilterSerializer(serializers.Serializer):
         required=False,
         min_value=0
     )
+    department = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
     municipality = serializers.ListField(
         child=serializers.CharField(),
         required=False

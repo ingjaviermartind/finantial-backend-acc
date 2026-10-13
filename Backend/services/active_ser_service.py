@@ -78,7 +78,14 @@ def get_clients() :
 @staticmethod
 def get_services(filters):
     try:
+        departments = models.Department.objects.filter(id__in=filters.departments)
         municipalities = models.Municipality.objects.filter(id__in=filters.municipalities)
+        department_names = list(
+            departments.values_list(
+                "name",
+                flat=True
+            )
+        )
         danes = list(
             municipalities.values_list(
                 "dane",
@@ -101,6 +108,9 @@ def get_services(filters):
         params = {
             "capacity_min": filters.capacity_min,
             "capacity_max": filters.capacity_max,
+            "filter_department": (1 if department_names else 0),
+            "departments" : department_names,
+            "filter_dane" : (1 if danes else 0),
             "danes": danes,
             "filter_product_family": (1 if filters.product_families else 0),
             "product_families": filters.product_families,
@@ -114,6 +124,7 @@ def get_services(filters):
             "subsegments": filters.subsegments,
         }
         expanding_params = [
+            "departments",
             "danes",
             "product_families",
             "products",

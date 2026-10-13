@@ -51,6 +51,7 @@ class ServiceFilters:
     capacity_min: float | None = None
     capacity_max: float | None = None
     municipalities: list[str] = field(default_factory=list)
+    departments : list[str] = field(default=list)
     products: list[str] = field(default_factory=list)
     plans: list[str] = field(default_factory=list)
     product_families: list[str] = field(default_factory=list)

@@ -157,7 +157,16 @@ AND (
 )
 AND s.TARIFA > 1
 AND s.SER <> 'SER-280627' 
-AND s.[Codigo DANE] IN :danes
+AND 
+(
+    :filter_department = 0
+    OR s.[Departamento] IN :departments
+)
+AND 
+(
+    :filter_dane = 0
+    OR s.[Codigo DANE] IN :danes
+)
 AND 
 (
 	:filter_product_family = 0
