@@ -431,3 +431,123 @@ SELECT
     AND CAPACIDADBPS <= :max_cap
     ORDER BY TARIFA DESC
 """
+
+QUERY_SERVICES_TRACKER_CREATE_BASE_V1 = """
+CREATE TABLE #ServiceTrackerBase
+(
+    SER NVARCHAR(80),
+    RAZON_SOCIAL NVARCHAR(255),
+    NIT NVARCHAR(100),
+    FAMILIA_PRODUCTOS NVARCHAR(255),
+    PRODUCTO NVARCHAR(255),
+    [PLAN] NVARCHAR(80),
+    TARIFA DECIMAL(18,2),
+    CAPACIDADBPS DECIMAL(18,2),
+    VLR_MBPS DECIMAL(18,4),
+    Departamento NVARCHAR(100),
+    Municipio NVARCHAR(100),
+    [Codigo DANE] NVARCHAR(20),
+    Longitud FLOAT,
+    Latitud FLOAT,
+    [Direccion Servicio] NVARCHAR(1300),
+    FECHA_FIN_PERMANENCIA DATE,
+    NvoSubsegmento NVARCHAR(255)
+);
+"""
+
+QUERY_SERVICES_TRACKER_INSERT_BASE_V1 = """
+INSERT INTO #ServiceTrackerBase
+(
+    SER,
+    RAZON_SOCIAL,
+    NIT,
+    FAMILIA_PRODUCTOS,
+    PRODUCTO,
+    [PLAN],
+    TARIFA,
+    CAPACIDADBPS,
+    VLR_MBPS,
+    Departamento,
+    Municipio,
+    [Codigo DANE],
+    Longitud,
+    Latitud,
+    [Direccion Servicio],
+    FECHA_FIN_PERMANENCIA,
+    NvoSubsegmento
+)
+SELECT 
+    SER,
+    RAZON_SOCIAL,
+    CASE 
+        WHEN DIGITO_VERIFICACION IS NULL 
+            THEN CAST(NRO_IDENTIFICACION AS NVARCHAR(20))
+        ELSE CONCAT(NRO_IDENTIFICACION, '-', DIGITO_VERIFICACION)
+    END AS NIT,
+    FAMILIA_PRODUCTOS,
+    PRODUCTO,
+    [PLAN],
+    TARIFA,
+    CAPACIDADBPS,
+    TARIFA / NULLIF(CAPACIDADBPS, 0) AS VLR_MBPS,
+    Departamento,
+    Municipio,
+    [Codigo DANE],
+    Longitud,
+    Latitud,
+    [Direccion Servicio],
+    FECHA_FIN_PERMANENCIA,
+    NvoSubsegmento
+FROM DTM.SF_SERVICE_LEGV2
+WHERE ESTADO_SER NOT IN 
+(
+    'Cancelado',
+    'Error',
+    'En Proceso',
+    'Declinado'
+)
+AND TIPO_PRODUCTO IN ('L2', 'L3')
+AND 
+(
+    TipodePunto NOT LIKE 'INTER%'
+    OR TipodePunto IS NULL
+);
+"""
+
+QUERY_SERVICES_TRACKER_MEASURES_V1 = """
+SELECT
+    COUNT(*) AS Total_Servicios,
+    SUM(
+        CASE
+            WHEN Longitud <> 0
+             AND Latitud <> 0
+             AND Longitud IS NOT NULL
+             AND Latitud IS NOT NULL
+            THEN 1
+            ELSE 0
+        END
+    ) AS Servicios_Con_Coordenadas,
+    CAST(
+        100.0 * SUM(
+            CASE
+                WHEN Longitud <> 0
+                 AND Latitud <> 0
+                 AND Longitud IS NOT NULL
+                 AND Latitud IS NOT NULL
+                THEN 1
+                ELSE 0
+            END
+        ) / NULLIF(COUNT(*), 0)
+        AS DECIMAL(6,2)
+    ) AS Razon_Servicios_Con_Coordenadas_Pct
+FROM #ServiceTrackerBase;
+"""
+
+QUERY_SERVICES_TRACKER_SERVICES_WITH_COORDINATES = """
+SELECT *
+FROM #ServiceTrackerBase
+WHERE Longitud <> 0 AND Latitud <> 0;
+"""
+
+
+
