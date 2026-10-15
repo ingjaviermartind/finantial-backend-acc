@@ -449,7 +449,7 @@ CREATE TABLE #ServiceTrackerBase
     [Codigo DANE] NVARCHAR(20),
     Longitud FLOAT,
     Latitud FLOAT,
-    [Direccion Servicio] NVARCHAR(1300),
+    [Direccion] NVARCHAR(1300),
     FECHA_FIN_PERMANENCIA DATE,
     NvoSubsegmento NVARCHAR(255)
 );
@@ -472,7 +472,7 @@ INSERT INTO #ServiceTrackerBase
     [Codigo DANE],
     Longitud,
     Latitud,
-    [Direccion Servicio],
+    [Direccion],
     FECHA_FIN_PERMANENCIA,
     NvoSubsegmento
 )
@@ -495,7 +495,7 @@ SELECT
     [Codigo DANE],
     Longitud,
     Latitud,
-    [Direccion Servicio],
+    [Direccion Servicio] AS Direccion,
     FECHA_FIN_PERMANENCIA,
     NvoSubsegmento
 FROM DTM.SF_SERVICE_LEGV2
@@ -549,5 +549,12 @@ FROM #ServiceTrackerBase
 WHERE Longitud <> 0 AND Latitud <> 0;
 """
 
-
+QUERY_SERVICES_TRACKER_NO_COORDINATES_V1 = """
+SELECT *
+FROM #ServiceTrackerBase
+WHERE Longitud IS NULL
+   OR Latitud IS NULL
+   OR Longitud = 0
+   OR Latitud = 0;
+"""
 

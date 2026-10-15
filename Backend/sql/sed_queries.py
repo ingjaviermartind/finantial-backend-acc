@@ -17,7 +17,7 @@ CREATE TABLE #LocationTrackerBase
     DANE_Mpio NVARCHAR(20),
     Longitud FLOAT,
     Latitud FLOAT,
-    [Direccion Sede] NVARCHAR(1300),
+    [Direccion] NVARCHAR(1300),
     [Viabilidad Positiva] VARCHAR(2),
     [Distancia Total Viabilidad] FLOAT,
     [Total por un punto (USD) Viabilidad] FLOAT
@@ -130,7 +130,7 @@ Sedes AS
         sed.DANE_Mpio,
         sed.Longitud,
         sed.Latitud,
-        sed.[Direccion Sede],
+        sed.[Direccion Sede] AS Direccion,
         sed.[Viabilidad Positiva],
         sed.[Distancia Total Viabilidad],
         sed.[Total por un punto (USD) Viabilidad]
@@ -166,7 +166,7 @@ INSERT INTO #LocationTrackerBase
     DANE_Mpio,
     Longitud,
     Latitud,
-    [Direccion Sede],
+    [Direccion],
     [Viabilidad Positiva],
     [Distancia Total Viabilidad],
     [Total por un punto (USD) Viabilidad]
@@ -188,7 +188,7 @@ SELECT
     DANE_Mpio,
     Longitud,
     Latitud,
-    [Direccion Sede],
+    [Direccion],
     [Viabilidad Positiva],
     [Distancia Total Viabilidad],
     [Total por un punto (USD) Viabilidad]
@@ -268,4 +268,17 @@ WHERE [Total por un punto (USD) Viabilidad] <> 0
   AND Latitud <> 0
   AND Longitud IS NOT NULL
   AND Latitud IS NOT NULL;
+"""
+
+QUERY_LOCATIONS_TRACKER_NO_COORDINATES_V1 = """
+SELECT *
+FROM #LocationTrackerBase
+WHERE [Total por un punto (USD) Viabilidad] <> 0
+  AND [Total por un punto (USD) Viabilidad] IS NOT NULL
+  AND (
+      Longitud IS NULL
+      OR Latitud IS NULL
+      OR Longitud = 0
+      OR Latitud = 0
+  );
 """

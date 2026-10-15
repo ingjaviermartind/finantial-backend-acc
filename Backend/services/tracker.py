@@ -11,13 +11,38 @@ from sklearn.neighbors import BallTree
 
 import numpy as np
 
+from Backend.utils.coordinate_extractor import extraer_coordenadas
+
 class FunnelTrackerService:
 
     EARTH_RADIUS_M = 6_371_008.8
     MATCH_RADIUS_M = 100.0
 
     @staticmethod
-    def _execute_tracker_queries(engine: Engine,table_name: str,create_query: str,insert_query: str, measures_query: str, coordinates_query: str) -> dict:
+    def _recover_missing_coordinates(coordinates: list[dict],directions: list[dict]) -> list[dict]:
+        recovered_rows = []
+        for row in directions:
+            latitude, longitude = extraer_coordenadas(row.get("Direccion"))
+            if latitude is None or longitude is None:
+                continue
+            recovered_rows.append({
+                **row,
+                "Latitud": latitude,
+                "Longitud": longitude,
+            })
+
+        return coordinates + recovered_rows
+
+    @staticmethod
+    def _execute_tracker_queries(
+        engine: Engine,
+        table_name: str,
+        create_query: str,
+        insert_query: str, 
+        measures_query: str, 
+        coordinates_query: str, 
+        directions_query : str
+    ) -> dict:
         drop_query = text(
             f"""
             IF OBJECT_ID('tempdb..{table_name}') IS NOT NULL
@@ -43,16 +68,15 @@ class FunnelTrackerService:
                     .mappings()
                     .all()
                 )
+                directions = (
+                    connection.execute(text(directions_query))
+                    .mappings()
+                    .all()
+                )
                 # Eliminar la temporal antes de devolver la conexión al pool.
                 connection.execute(drop_query)
                 connection.commit()
-                return {
-                    "metrics": dict(measures),
-                    "coordinates": [
-                        dict(row) for row in coordinates
-                    ],
-                    "coordinates_count": len(coordinates),
-                }
+                
             except Exception:
                 connection.rollback()
                 # Si falló la operación, intentar limpiar la temporal.
@@ -62,7 +86,46 @@ class FunnelTrackerService:
                 except Exception:
                     connection.rollback()
                 raise
+        # Convertir los resultados en diccionarios.
+        coordinates = [dict(row) for row in coordinates]
+        directions = [dict(row) for row in directions]
+        # Métricas previas a la recuperación.
+        coordinates_original_count = len(coordinates)
+        directions_count = len(directions)
+        # Recuperar coordenadas desde las direcciones.
+        coordinates = FunnelTrackerService._recover_missing_coordinates(
+            coordinates=coordinates,
+            directions=directions,
+        )
+        # Métricas posteriores a la recuperación.
+        coordinates_recovered_count = (len(coordinates) - coordinates_original_count)
+        coordinates_recovery_failed_count = (directions_count - coordinates_recovered_count)
+        total_records = (
+            measures.get("Sedes_Viables")
+            or measures.get("Total_Servicios")
+        )
+        coordinates_coverage_pct = (
+            round(
+                len(coordinates) / total_records * 100,
+                2,
+            )
+            if total_records
+            else 0
+        )
 
+        return {
+            "metrics": {
+                **dict(measures),
+                "coordinates_original_count": coordinates_original_count,
+                "coordinates_recovered_count": coordinates_recovered_count,
+                "coordinates_recovery_failed_count": coordinates_recovery_failed_count,
+                "coordinates_count": len(coordinates),
+                "coordinates_coverage_pct" : coordinates_coverage_pct
+            },
+            "coordinates": coordinates,
+            "coordinates_count": len(coordinates),
+        }
+    
     @staticmethod
     def _load_locations(engine: Engine) -> dict:
         return FunnelTrackerService._execute_tracker_queries(
@@ -80,6 +143,9 @@ class FunnelTrackerService:
             coordinates_query=(
                 sed_queries.QUERY_LOCATIONS_TRACKER_SED_COORDINATES_V1
             ),
+            directions_query=(
+                sed_queries.QUERY_LOCATIONS_TRACKER_NO_COORDINATES_V1
+            )
         )
 
     @staticmethod
@@ -99,6 +165,9 @@ class FunnelTrackerService:
             coordinates_query=(
                 ser_queries.QUERY_SERVICES_TRACKER_SERVICES_WITH_COORDINATES
             ),
+            directions_query=(
+                ser_queries.QUERY_SERVICES_TRACKER_NO_COORDINATES_V1
+            )
         )
 
     @staticmethod
@@ -113,6 +182,8 @@ class FunnelTrackerService:
                 FunnelTrackerService._load_services,
                 engine,
             )
+
+            
 
             return {
                 "locations": locations_future.result(),
@@ -241,7 +312,7 @@ class FunnelTrackerService:
                         "service_department": service.get("Departamento"),
                         "service_municipality": service.get("Municipio"),
                         "service_dane": service.get("Codigo DANE"),
-                        "service_address": service.get("Direccion Servicio"),
+                        "service_address": service.get("Direccion"),
                         "service_latitude": service["_latitude"],
                         "service_longitude": service["_longitude"],
                         "nearby_sites": [],
@@ -265,7 +336,7 @@ class FunnelTrackerService:
                     "site_department": location.get("Departamento"),
                     "site_municipality": location.get("Municipio"),
                     "site_dane": location.get("DANE_Mpio"),
-                    "site_address": location.get("Direccion Sede"),
+                    "site_address": location.get("Direccion"),
                     "site_latitude": location["_latitude"],
                     "site_longitude": location["_longitude"],
                     "distance_m": round(distance_m, 2),
