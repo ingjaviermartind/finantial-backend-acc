@@ -80,9 +80,16 @@ def get_services(filters):
     try:
         departments = models.Department.objects.filter(id__in=filters.departments)
         municipalities = models.Municipality.objects.filter(id__in=filters.municipalities)
+        subsegments = models.Subsegment.objects.filter(id__in=filters.subsegments)
         department_names = list(
             departments.values_list(
                 "name",
+                flat=True
+            )
+        )
+        subsegment_names = list(
+            subsegments.values_list(
+                'name',
                 flat=True
             )
         )
@@ -120,8 +127,8 @@ def get_services(filters):
             "plans": filters.plans,
             "filter_client": 1 if filters.clients else 0,
             "clients": filters.clients,
-            "filter_subsegment": (1 if filters.subsegments else 0),
-            "subsegments": filters.subsegments,
+            "filter_subsegment": (1 if subsegment_names else 0),
+            "subsegments": subsegment_names,
         }
         expanding_params = [
             "departments",
