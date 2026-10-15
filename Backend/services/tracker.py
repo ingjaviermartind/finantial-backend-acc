@@ -9,6 +9,7 @@ from Backend.sql.database import engine
 from math import isfinite, radians
 from sklearn.neighbors import BallTree
 
+import numpy as np
 
 class FunnelTrackerService:
 
@@ -144,21 +145,14 @@ class FunnelTrackerService:
         return valid_rows
 
     @staticmethod
-    def _find_location_matches(
-        location_rows: list[dict],
-        service_rows: list[dict],
-        radius_m: float = 100.0,
-    ) -> dict:
+    def _find_location_matches(location_rows: list[dict],service_rows: list[dict],radius_m: float = 100.0,) -> dict:
         locations = FunnelTrackerService._valid_coordinate_rows(location_rows)
         services = FunnelTrackerService._valid_coordinate_rows(service_rows)
         if radius_m <= 0:
             raise ValueError("El radio debe ser mayor que cero.")
-        matches = []
-        matched_location_ids = set()
-        matched_service_ids = set()
         if not locations or not services:
             return {
-                "matches": [],
+                "services": [],
                 "metrics": {
                     "radius_m": radius_m,
                     "sites_checked": len(locations),
@@ -169,42 +163,98 @@ class FunnelTrackerService:
                     "matched_pairs": 0,
                 },
             }
-        service_coordinates = [
-            [
-                radians(service["_latitude"]),
-                radians(service["_longitude"]),
-            ]
+        
+        service_coordinates = np.radians([
+            [service["_latitude"], service["_longitude"]]
             for service in services
-        ]
-        location_coordinates = [
-            [
-                radians(location["_latitude"]),
-                radians(location["_longitude"]),
-            ]
+        ])
+        location_coordinates = np.radians([
+            [location["_latitude"], location["_longitude"]]
             for location in locations
-        ]
+        ])
         tree = BallTree(service_coordinates, metric="haversine")
-        radius_radians = (radius_m / FunnelTrackerService.EARTH_RADIUS_M)
+        radius_radians = radius_m / FunnelTrackerService.EARTH_RADIUS_M
         neighbor_indices, angular_distances = tree.query_radius(
             location_coordinates,
             r=radius_radians,
             return_distance=True,
             sort_results=True,
         )
+        # Agrupar las sedes encontradas por servicio SER.
+        services_grouped = {}
+        # Evitar duplicar una misma relación sede-servicio.
+        seen_pairs = set()
+        matched_location_ids = set()
         for location_index, location in enumerate(locations):
-            nearby_indices = neighbor_indices[location_index]
-            nearby_distances = angular_distances[location_index]
-            for service_index, angular_distance in zip(nearby_indices,nearby_distances):
-                service = services[int(service_index)]
-                distance_m = (float(angular_distance) * FunnelTrackerService.EARTH_RADIUS_M)
-                matched_location_ids.add(location_index)
-                matched_service_ids.add(int(service_index))
-                matches.append({
+            site_id = location.get("Consecutivo de Sede")
+            # Usar el identificador de la sede para contarla una sola vez.
+            site_key = (
+                str(site_id)
+                if site_id is not None
+                else f"location_row_{location_index}"
+            )
+            for service_index, angular_distance in zip(
+                neighbor_indices[location_index],
+                angular_distances[location_index],
+            ):
+                service_index = int(service_index)
+                service = services[service_index]
+                ser = service.get("SER")
+                service_key = (
+                    str(ser)
+                    if ser is not None
+                    else f"service_row_{service_index}"
+                )
+                pair_key = (site_key, service_key)
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+                distance_m = (
+                    float(angular_distance)
+                    * FunnelTrackerService.EARTH_RADIUS_M
+                )
+                # Crear el servicio solamente la primera vez que aparece.
+                if service_key not in services_grouped:
+                    services_grouped[service_key] = {
+                        "active_service_ser": ser,
+                        "service_nit": service.get("NIT"),
+                        "service_client": service.get("RAZON_SOCIAL"),
+                        "client_subsegment": service.get("NvoSubsegmento"),
+                        "service_family": service.get("FAMILIA_PRODUCTOS"),
+                        "service_product": service.get("PRODUCTO"),
+                        "service_plan": service.get("PLAN"),
+                        "service_tariff": (
+                            float(service["TARIFA"])
+                            if service.get("TARIFA") is not None
+                            else None
+                        ),
+                        "service_capacity": (
+                            float(service["CAPACIDADBPS"])
+                            if service.get("CAPACIDADBPS") is not None
+                            else None
+                        ),
+                        "service_price_per_mbps": (
+                            float(service["VLR_MBPS"])
+                            if service.get("VLR_MBPS") is not None
+                            else None
+                        ),
+                        "service_department": service.get("Departamento"),
+                        "service_municipality": service.get("Municipio"),
+                        "service_dane": service.get("Codigo DANE"),
+                        "service_address": service.get("Direccion Servicio"),
+                        "service_latitude": service["_latitude"],
+                        "service_longitude": service["_longitude"],
+                        "nearby_sites": [],
+                    }
+                # Agregar la sede dentro de ese servicio.
+                services_grouped[service_key]["nearby_sites"].append({
                     "funnel": location.get("Funnel"),
-                    "site_id": location.get("Consecutivo de Sede"),
+                    "creation_date": location.get("FechaCreacion"),
+                    "site_id": site_id,
                     "site_nit": location.get("NIT"),
                     "site_status": location.get("ESTADO_FUNNEL"),
-                    "commercial": location.get("NOMBRE_COMERCIAL_FUNNEL"),
+                    "client": location.get("NOMBRE_COMERCIAL_FUNNEL"),
+                    "salesman": location.get("Vendedor"),
                     "site_product": location.get("Producto"),
                     "site_plan": location.get("Plan"),
                     "site_capacity_mbps": (
@@ -218,35 +268,12 @@ class FunnelTrackerService:
                     "site_address": location.get("Direccion Sede"),
                     "site_latitude": location["_latitude"],
                     "site_longitude": location["_longitude"],
-
-                    "active_service_ser": service.get("SER"),
-                    "service_nit": service.get("NIT"),
-                    "service_client": service.get("RAZON_SOCIAL"),
-                    "service_family": service.get("FAMILIA_PRODUCTOS"),
-                    "service_product": service.get("PRODUCTO"),
-                    "service_plan": service.get("PLAN"),
-                    "service_tariff": (
-                        float(service["TARIFA"])
-                        if service.get("TARIFA") is not None
-                        else None
-                    ),
-                    "service_price_per_mbps": (
-                        float(service["VLR_MBPS"])
-                        if service.get("VLR_MBPS") is not None
-                        else None
-                    ),
-                    "service_department": service.get("Departamento"),
-                    "service_municipality": service.get("Municipio"),
-                    "service_dane": service.get("Codigo DANE"),
-                    "service_address": service.get("Direccion Servicio"),
-                    "service_latitude": service["_latitude"],
-                    "service_longitude": service["_longitude"],
-
                     "distance_m": round(distance_m, 2),
                 })
-
+                matched_location_ids.add(site_key)
+        grouped_services = list(services_grouped.values())
         return {
-            "matches": matches,
+            "services": grouped_services,
             "metrics": {
                 "radius_m": radius_m,
                 "sites_checked": len(locations),
@@ -255,8 +282,8 @@ class FunnelTrackerService:
                 "sites_without_matches": (
                     len(locations) - len(matched_location_ids)
                 ),
-                "services_matched": len(matched_service_ids),
-                "matched_pairs": len(matches),
+                "services_matched": len(grouped_services),
+                "matched_pairs": len(seen_pairs),
             },
         }
 
@@ -279,5 +306,5 @@ class FunnelTrackerService:
                 "services": data["services"]["metrics"],
                 "proximity": proximity["metrics"],
             },
-            "matches": proximity["matches"],
+            "services_with_nearby_sites": proximity["services"],
         }

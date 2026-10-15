@@ -2,10 +2,12 @@ QUERY_LOCATIONS_TRACKER_CREATE_BASE_V1 = """
 CREATE TABLE #LocationTrackerBase
 (
     [Consecutivo de Sede] NVARCHAR(80),
+    FechaCreacion DATETIME,
     Funnel NVARCHAR(80),
     ESTADO_FUNNEL NVARCHAR(80),
     NOMBRE_COMERCIAL_FUNNEL NVARCHAR(255),
     NIT NVARCHAR(27),
+    Vendedor NVARCHAR(100),
     Familia_Producto_Sede NVARCHAR(50),
     Producto NVARCHAR(255),
     [Plan] NVARCHAR(80),
@@ -58,8 +60,12 @@ WITH FunnelsRanked AS
 ),
 Funnels AS
 (
-    SELECT *
-    FROM FunnelsRanked
+    SELECT 
+    f1.*,
+    f2.Vendedor
+    FROM FunnelsRanked f1
+    INNER JOIN SFDC.DM_PRICING_FUNNEL f2
+        ON f1.FUNNEL = f2.FUNNEL
     WHERE RN = 1
 ),
 Sedes AS 
@@ -68,7 +74,9 @@ Sedes AS
         sed.[Consecutivo de Sede],
         sed.Funnel,
         f.ESTADO_FUNNEL,
+        f.FechaCreacion,
         f.NOMBRE_COMERCIAL_FUNNEL,
+        f.Vendedor,
         f.NIT,
         sed.Familia_Producto_Sede,
         sed.Producto,
@@ -144,9 +152,11 @@ INSERT INTO #LocationTrackerBase
 (
     [Consecutivo de Sede],
     Funnel,
+    FechaCreacion,
     ESTADO_FUNNEL,
     NOMBRE_COMERCIAL_FUNNEL,
     NIT,
+    Vendedor,
     Familia_Producto_Sede,
     Producto,
     [Plan],
@@ -164,9 +174,11 @@ INSERT INTO #LocationTrackerBase
 SELECT
     [Consecutivo de Sede],
     Funnel,
+    FechaCreacion,
     ESTADO_FUNNEL,
     NOMBRE_COMERCIAL_FUNNEL,
     NIT,
+    Vendedor,
     Familia_Producto_Sede,
     Producto,
     [Plan],

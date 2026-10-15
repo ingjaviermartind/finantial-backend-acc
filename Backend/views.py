@@ -498,8 +498,8 @@ class ClientViewSet(viewsets.ViewSet):
         )
 
 class FunnelTrackerViewSet(viewsets.ViewSet):
-    authentication_classes = [JWTAuthentication] # 
-    permission_classes = [IsPricingOrAdmin] # 
+    authentication_classes = [] # JWTAuthentication
+    permission_classes = [] # IsPricingOrAdmin
     def list(self, request):
         try:
             radius_m = float(request.query_params.get("radius_m", 100))
