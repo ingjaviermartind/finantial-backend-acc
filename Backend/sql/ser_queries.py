@@ -512,7 +512,7 @@ AND
     TipodePunto NOT LIKE 'INTER%'
     OR TipodePunto IS NULL
 )
-AND [PLAN] NOT LIKE '%SIN UK%';
+--AND [PLAN] NOT LIKE '%SIN UK%';
 """
 
 QUERY_SERVICES_TRACKER_MEASURES_V1 = """

@@ -139,7 +139,7 @@ Sedes AS
         ON sed.[Consecutivo de Sede] = f.SEDE
     WHERE 
         (
-            sed.Producto NOT IN ('IP PÚBLICA') AND sed.Producto NOT LIKE '%SIN UK%'
+            sed.Producto NOT IN ('IP PÚBLICA') --AND sed.Producto NOT LIKE '%SIN UK%'
             OR sed.Producto IS NULL
         )
         AND
