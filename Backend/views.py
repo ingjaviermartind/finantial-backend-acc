@@ -480,12 +480,30 @@ class PricingSiteViewSet(viewsets.ViewSet):
             page_size=data.get('page_size', 50),
         )
 
-class ClientViewSet(viewsets.ViewSet):
+class ClientOptionsViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication, SessionAuthentication] 
     permission_classes = []
     @action(detail=False, methods=['get'])
     def active(self, request):
-        result = active_ser_service.get_clients()
+        result = active_ser_service.get_clients_options()
+        if not result["success"]:
+            return Response(
+                {
+                    "detail": result["message"]
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        return Response(
+            result["data"],
+            status=status.HTTP_200_OK
+        )
+
+class ServiceOptionsViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication, SessionAuthentication] 
+    permission_classes = []
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        result = active_ser_service.get_services_options()
         if not result["success"]:
             return Response(
                 {

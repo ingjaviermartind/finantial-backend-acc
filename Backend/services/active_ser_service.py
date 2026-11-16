@@ -10,7 +10,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from Backend import models
 
-from django.db.models import F
+
+from collections import defaultdict
+from django.db.models import (Case, When, Value, CharField, F)
+from django.db.models.functions import Cast, Concat
+from accdwh.models import SfServiceLegv2
+
 
 CAPACITY_GROUPS = [
     (2, 15, "2-15 Mbps"),
@@ -32,47 +37,142 @@ def get_capacity_group(capacity):
 
     return None
 
+
+
+
 @staticmethod
-def get_clients() : 
+def get_clients_options():
     try:
-        query = text(ser_queries.QUERY_ACTIVE_CLIENTS)
-        df_active_clients = pd.read_sql(
-            query,
-            engine
-        )
-        clients = (
-            df_active_clients
-            .groupby("NIT", sort=True)["RAZON_SOCIAL"]
-            .apply(
-                lambda names: sorted(
-                    {
-                        name.strip()
-                        for name in names
-                        if pd.notna(name) and str(name).strip()
-                    }
-                )
-            ).reset_index(name="business_names")
-        )
-        return {
-            "success": True,
-            "data": clients.to_dict(
-                orient="records"
+        queryset = (
+            SfServiceLegv2.objects.using('dwh')
+            .exclude(
+                estado_ser__in=[
+                    'Cancelado',
+                    'Error',
+                    'En Proceso',
+                    'Declinado'
+                ]
             )
-        }
-    except SQLAlchemyError as e:
-        print("SQLALCHEMY ERROR:", repr(e))
+            .filter(estado_ser__isnull=False)
+            .annotate(
+                nit=Case(
+                    When(
+                        digito_verificacion__isnull=True,
+                        then=Cast(
+                            'nro_identificacion',
+                            output_field=CharField()
+                        )
+                    ),
+                    default=Concat(
+                        F('nro_identificacion'),
+                        Value('-'),
+                        F('digito_verificacion')
+                    ),
+                    output_field=CharField()
+                )
+            )
+            .values('nit', 'razon_social')
+            .distinct()
+            .order_by('nit', 'razon_social')
+        )
+        clients = defaultdict(set)
+        for row in queryset:
+            nit = row['nit']
+            name = row['razon_social']
+            if nit and name and name.strip():
+                clients[nit].add(name.strip())
+        data = [
+            {
+                'NIT': nit,
+                'business_names': sorted(names)
+            }
+            for nit, names in sorted(clients.items())
+        ]
         return {
-            "success": False,
-            "code": "DATABASE_ERROR",
-            "message": "Error consultando la base de datos."
+            'success': True,
+            'data': data
         }
     except Exception as e:
-        print("UNKNOWN ERROR:", type(e), repr(e))
+        print('ERROR CONSULTANDO CLIENTES:', repr(e))
         return {
-            "success": False,
-            "code": "UNKNOWN_ERROR",
-            "message": "Error inesperado."
+            'success': False,
+            'code': 'DATABASE_ERROR',
+            'message': 'Error consultando la base de datos.'
         }
+
+@staticmethod
+def get_services_options():
+    try:
+        services = (
+            SfServiceLegv2.objects.using('dwh')
+            .exclude(
+                estado_ser__in=[
+                    'Cancelado',
+                    'Error',
+                    'En Proceso',
+                    'Declinado'
+                ]
+            )
+            .values(
+                'ser',
+                'anchodebanda',
+                'razon_social'
+            )
+            .order_by('ser')
+        )
+        return {
+            'success': True,
+            'data': list(services)
+        }
+    except Exception as e:
+        print('ERROR CONSULTANDO SERVICIOS:', repr(e))
+        return {
+            'success': False,
+            'code': 'DATABASE_ERROR',
+            'message': 'Error consultando la base de datos.'
+        }
+
+# @staticmethod
+# def get_clients() : 
+#     try:
+#         query = text(ser_queries.QUERY_ACTIVE_CLIENTS)
+#         df_active_clients = pd.read_sql(
+#             query,
+#             engine
+#         )
+#         clients = (
+#             df_active_clients
+#             .groupby("NIT", sort=True)["RAZON_SOCIAL"]
+#             .apply(
+#                 lambda names: sorted(
+#                     {
+#                         name.strip()
+#                         for name in names
+#                         if pd.notna(name) and str(name).strip()
+#                     }
+#                 )
+#             ).reset_index(name="business_names")
+#         )
+#         return {
+#             "success": True,
+#             "data": clients.to_dict(
+#                 orient="records"
+#             )
+#         }
+#     except SQLAlchemyError as e:
+#         print("SQLALCHEMY ERROR:", repr(e))
+#         return {
+#             "success": False,
+#             "code": "DATABASE_ERROR",
+#             "message": "Error consultando la base de datos."
+#         }
+#     except Exception as e:
+#         print("UNKNOWN ERROR:", type(e), repr(e))
+#         return {
+#             "success": False,
+#             "code": "UNKNOWN_ERROR",
+#             "message": "Error inesperado."
+#         }
 
 
 @staticmethod
