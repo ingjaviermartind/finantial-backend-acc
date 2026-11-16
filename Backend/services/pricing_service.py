@@ -1,6 +1,6 @@
-from Backend.dtos.Project import Project
-from Backend.dtos.PricingRecommendation import PricingRecommendation
-from Backend.dtos.MarketReference import MarketReference
+from Backend.dtos import Project, PricingRecommendation, MarketReference
+
+
 from Backend.services.ml_services import predict_vlr_mbps_nw
 from Backend.services.active_ser_service import get_services_reference_by_municipality
 from Backend.services.financial_variable_service import FinancialVariableService

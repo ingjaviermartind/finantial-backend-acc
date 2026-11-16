@@ -1,5 +1,5 @@
 from Backend import models
-from Backend.dtos.PricingRecommendation import PricingRecommendation
+from Backend.dtos import PricingRecommendation
 from django.db import transaction
 
 class QuoteLogService:

@@ -85,7 +85,20 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    'dwh': {
+        'ENGINE': 'mssql',
+        'NAME': 'Azteca_Staging',
+        'HOST': r'10.142.16.246\ACCDWH',
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+            'extra_params': (
+                'Trusted_Connection=yes;'
+                'TrustServerCertificate=yes;'
+            ),
+        },
     }
+    
 }
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

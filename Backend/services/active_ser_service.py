@@ -1,7 +1,7 @@
 import pandas as pd
 from Backend import models
 
-from Backend.dtos.MarketReference import MarketReference
+from Backend.dtos import MarketReference
 
 from Backend.sql import ser_queries
 from Backend.sql.database import engine

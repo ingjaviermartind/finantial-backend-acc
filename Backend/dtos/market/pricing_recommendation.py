@@ -1,13 +1,12 @@
 from dataclasses import dataclass
+from Backend.dtos import EvaluationResult
 
-from Backend.dtos.EvaluationResult import EvaluationResult
-
-
-@dataclass
+@dataclass(frozen=True, slots=True)
 class PricingRecommendation:
     suggested: EvaluationResult
     predicted: EvaluationResult
     floor: EvaluationResult
+    
     mean_price_mbps: float
     median_price_mbps: float
     market_std: float

@@ -1,6 +1,4 @@
-from Backend.dtos.Project import Project
-from Backend.dtos.FinancialVariables import FinancialVariables
-
+from Backend.dtos import FinancialVariables, Project
 from Backend.services.financial_engine import financial_engine
 
 class PricingOptimizer:

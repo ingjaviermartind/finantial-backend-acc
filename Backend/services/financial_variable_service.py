@@ -1,4 +1,4 @@
-from Backend.dtos.FinancialVariables import FinancialVariables
+from Backend.dtos import FinancialVariables
 from Backend import models
 
 class FinancialVariableService():

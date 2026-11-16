@@ -14,6 +14,8 @@ from . import filters
 from django.db import transaction
 
 from . import models
+from Backend.dtos import Project, PricingRecommendation
+
 from . import serializers
 from .permissions import IsPricing
 from .permissions import IsAdmin
@@ -23,7 +25,7 @@ from Backend.services import active_ser_service
 from Backend.services.pricing_service import PricingService
 from Backend.services.quote_log_service import QuoteLogService
 from Backend.services.pricing_site_service import PricingSiteService
-from Backend.dtos.Project import Project
+
 
 from dataclasses import asdict
 
@@ -42,7 +44,6 @@ from rest_framework.permissions import AllowAny
 
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from Backend.dtos.PricingRecommendation import PricingRecommendation
 
 from django.shortcuts import get_object_or_404
 

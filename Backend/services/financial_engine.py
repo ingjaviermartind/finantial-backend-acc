@@ -1,6 +1,4 @@
-from Backend.dtos.Project import Project
-from Backend.dtos.FinancialVariables import FinancialVariables
-from Backend.dtos.EvaluationResult import EvaluationResult
+from Backend.dtos import Project, FinancialVariables, EvaluationResult
 
 import numpy_financial as npf
 
