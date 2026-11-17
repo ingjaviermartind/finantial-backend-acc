@@ -1,13 +1,17 @@
 from Backend.dtos import FinancialVariables
 from Backend import models
 
-class FinancialVariableService():
+class FinancialVariableService:
+
     @staticmethod
-    def get_variables() -> FinancialVariables:
+    def get_variables(area) -> FinancialVariables:
         variables = {
             item.key: float(item.value)
-            for item in models.FinancialVariable.objects.all()
+            for item in models.FinancialVariable.objects.filter(
+                area=area
+            )
         }
+
         return FinancialVariables(
             trm=variables["TRM"],
             eth_output_mbps=variables["ETH_OUT"],
@@ -19,18 +23,22 @@ class FinancialVariableService():
             collection=variables["COLL_COMM"],
             web_capex=variables["WEB_CAPEX"],
             margin_factor=variables["MARG"],
-            gmf=variables["_4x1000"]/100,
-            fontic=variables["FONTIC"]/100,
-            ica=variables["ICA"]/100,
+            gmf=variables["_4x1000"] / 100,
+            fontic=variables["FONTIC"] / 100,
+            ica=variables["ICA"] / 100,
             cartera=variables["PORTF"],
-            monthly_wacc=variables["WACC_M"]/100,
-            wacc=variables["WACC_A"]/100
+            monthly_wacc=variables["WACC_M"] / 100,
+            wacc=variables["WACC_A"] / 100
         )
+
     @staticmethod
-    def update_variable(key: str, value: float):
+    def update_variable(key: str, value: float, area):
         variable = models.FinancialVariable.objects.get(
-            key=key
+            key=key,
+            area=area
         )
+
         variable.value = value
-        variable.save()
+        variable.save(update_fields=["value", "updated_at"])
+
         return variable

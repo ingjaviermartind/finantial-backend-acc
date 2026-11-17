@@ -144,7 +144,12 @@ class SfServiceLegv2(models.Model):
         null=True
     )     
     # servicio_relacionado = models.CharField(db_column='Servicio Relacionado', max_length=80, blank=True, null=True)     
-    # servicio_de_conectividad = models.CharField(db_column='Servicio de conectividad', max_length=80, blank=True, null=True)    
+    servicio_de_conectividad = models.CharField(
+        db_column='Servicio de conectividad', 
+        max_length=80, 
+        blank=True, 
+        null=True
+    )    
     anchodebanda = models.CharField(
         db_column='ANCHODEBANDA', 
         max_length=80, 

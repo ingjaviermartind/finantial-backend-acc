@@ -2,13 +2,14 @@ from django.db import models
 from uuid import uuid4
 from django.contrib.auth.models import User
 
-class UserProfile(models.Model):
+class Area(models.Model):
+    key = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    def __str__(self):
+        return self.name 
 
-    class Area(models.TextChoices):
-        PRICING = 'pricing'
-        RETENCION = 'retencion'
-        VENTAS = 'ventas'
-        PREVENTA = 'preventa'
+class UserProfile(models.Model):
 
     class Cargo(models.TextChoices):
         ANALISTA = 'analista'
@@ -23,9 +24,10 @@ class UserProfile(models.Model):
         on_delete=models.CASCADE,
         related_name='profile'
     )
-    area = models.CharField(
-        max_length=30,
-        choices=Area.choices
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.PROTECT,
+        related_name='profiles'
     )
     cargo = models.CharField(
         max_length=30,

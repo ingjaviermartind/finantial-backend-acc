@@ -21,7 +21,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'groups': list(
                 user.groups.values_list('name', flat=True)
             ),
-            'area': profile.area if profile else None,
+            'area': profile.area.key if profile else None,
             'cargo': profile.cargo if profile else None,
         }
 

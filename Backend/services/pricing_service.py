@@ -31,10 +31,10 @@ class PricingService:
         return PricingService.CAPACITY_GROUPS[0]
 
     @staticmethod
-    def evaluate(municipality_id, prj : Project) -> PricingRecommendation:
+    def evaluate(municipality_id, prj : Project, area : str) -> PricingRecommendation:
         municipality = models.Municipality.objects.select_related("department").get(id=municipality_id)
 
-        vars = FinancialVariableService.get_variables()
+        vars = FinancialVariableService.get_variables(area)
         predicted_price_mpbs = predict_vlr_mbps_nw(prj.capacity_mbps, municipality, prj.contract_time, prj.product_type, prj.product, prj.subsegment)
         predicted_result = financial_engine.evaluate_price_per_mbps(prj,vars,predicted_price_mpbs)
         floor_result = PricingOptimizer.find_floor(prj,vars)
@@ -61,8 +61,8 @@ class PricingService:
         )
 
     @staticmethod
-    def evaluate_price(prj: Project, vlr_mbps):
-        vars = FinancialVariableService.get_variables()
+    def evaluate_price(prj: Project, vlr_mbps, area : str):
+        vars = FinancialVariableService.get_variables(area)
         result = financial_engine.evaluate_price_per_mbps(prj, vars, vlr_mbps)
         return result
 

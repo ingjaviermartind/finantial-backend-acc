@@ -1,0 +1,20 @@
+-- database: ./db.sqlite3
+
+-- Use the ▷ button in the top right corner to run the entire file.
+
+SELECT  
+first_name,
+last_name,
+area.name AS Area,
+profile.cargo,
+auth_group.name AS Grupo
+FROM auth_user user
+INNER JOIN Backend_userprofile profile
+ON profile.user_id = user.id
+INNER JOIN Backend_area area
+ON profile.area_id = area.id
+INNER JOIN auth_user_groups user_groups
+ON user.id = user_groups.user_id
+INNER JOIN auth_group 
+ON user_groups.group_id = auth_group.id
+

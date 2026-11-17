@@ -4,12 +4,12 @@ from uuid import uuid4
 from .evaluations import EvaluationResult
 from .catalog import Subsegment, Capacity, ProductCatalog
 from .geography import Region, Municipality
-
+from .users import Area
 
 class FinancialVariable(models.Model):
 
     class Unit (models.TextChoices):
-        USD = "USD",
+        USD = "USD"
         COP = "COP"
         COP_USD = "COP/USD"
         USD_MBPS_MES = "USD/Mbps/mes"
@@ -19,8 +19,15 @@ class FinancialVariable(models.Model):
         USD_m_MES = "USD/metro/mes"
         PERCENT = "%"
         AD = "adimensional"
-    
-    key = models.CharField(max_length=50, unique=True)
+    def default_pricing_area():
+        return Area.objects.get(key='pricing').pk
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.PROTECT,
+        related_name='financial_variables',
+        default=default_pricing_area
+    )
+    key = models.SlugField(max_length=50)
     name = models.CharField(max_length=100)
     value = models.DecimalField(max_digits=15, decimal_places=6)
     unit = models.CharField(
@@ -28,6 +35,16 @@ class FinancialVariable(models.Model):
         choices=Unit.choices
     )
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['area', 'key'],
+                name='unique_financial_variable_per_area'
+            )
+        ]
+    def __str__(self):
+        return f'{self.area.name} - {self.name}'
 
 
 

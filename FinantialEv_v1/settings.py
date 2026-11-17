@@ -32,13 +32,14 @@ INSTALLED_APPS = [
     'accdwh',
     'corsheaders'
 ]
-
+MIGRATION_MODULES = {
+    'accdwh': None,
+}
 LOGIN_REDIRECT_URL = "/api/"
 LOGOUT_REDIRECT_URL = "/api-auth/login/"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': [
@@ -141,6 +142,39 @@ SIMPLE_JWT = {
 
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
+}
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": (
+                "{asctime} | {levelname} | {name} | "
+                "Usuario: {username} (ID: {user_id}) | {message}"
+            ),
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "defaults": {
+                "username": "Sistema",
+                "user_id": "N/A",
+            },
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "Backend": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }
 #
 # EOF
