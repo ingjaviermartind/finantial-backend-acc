@@ -1,20 +1,50 @@
+
 import pandas as pd
-from Backend import models
-
-from Backend.dtos import MarketReference
-
-from Backend.sql import ser_queries
-from Backend.sql.database import engine
-from sqlalchemy import text
+import re
+import logging
 
 from collections import defaultdict
-from django.db.models import (Case, When, Value, CharField, F, OuterRef, Subquery, Sum, IntegerField, DecimalField, ExpressionWrapper)
-from django.db.models.functions import Cast, Concat, Replace, NullIf, Coalesce
-from accdwh.models import SfServiceLegv2, CicloServActivosPlanta
-import re
 
-import logging
+from Backend import models
+from Backend.dtos import MarketReference
+from Backend.sql import ser_queries
+from Backend.sql.database import engine
+
+from sqlalchemy import text
+
+from django.db.models import (
+    Case,
+    When,
+    Value,
+    CharField,
+    F,
+    Sum,
+    IntegerField,
+    DecimalField,
+    ExpressionWrapper,
+    OuterRef,
+    Subquery,
+    FloatField
+)
+
+from django.db.models.functions import (
+    Cast,
+    Concat,
+    Replace,
+    NullIf,
+    Coalesce,
+)
+
+from accdwh.models import (
+    SfServiceLegv2,
+    CicloServActivosPlanta,
+)
+
+from statistics import median, mean, stdev
+
+
 logger = logging.getLogger(__name__)
+
 
 CAPACITY_GROUPS = [
     (2, 15, "2-15 Mbps"),
@@ -25,7 +55,7 @@ CAPACITY_GROUPS = [
     (3000, 10000000, "3000+ Mbps"),
 ]
 
-@staticmethod
+
 def get_capacity_group(capacity):
     if pd.isna(capacity):
         return None
@@ -37,9 +67,6 @@ def get_capacity_group(capacity):
     return None
 
 
-
-
-@staticmethod
 def get_clients_options():
     try:
         queryset = (
@@ -74,12 +101,16 @@ def get_clients_options():
             .distinct()
             .order_by('nit', 'razon_social')
         )
+
         clients = defaultdict(set)
+
         for row in queryset:
             nit = row['nit']
             name = row['razon_social']
+
             if nit and name and name.strip():
                 clients[nit].add(name.strip())
+
         data = [
             {
                 'NIT': nit,
@@ -87,21 +118,23 @@ def get_clients_options():
             }
             for nit, names in sorted(clients.items())
         ]
+
         return {
             'success': True,
             'data': data
         }
+
     except Exception:
         logger.exception(
             "Error al consultar las opciones de clientes en DWH."
         )
+
         return {
             'success': False,
             'code': 'DATABASE_ERROR',
             'message': 'Error consultando la base de datos.'
         }
 
-@staticmethod
 def get_services_options():
     try:
         services = (
@@ -131,28 +164,35 @@ def get_services_options():
         )
 
         data = list(services)
+
         for service in data:
             service['producto'] = format_product_name(
                 service['producto']
             )
+
         return {
             'success': True,
             'data': data
         }
+
     except Exception:
-        logger.exception("Error al consultar las opciones de servicios en DWH.")
+        logger.exception(
+            "Error al consultar las opciones de servicios en DWH."
+        )
+
         return {
             'success': False,
             'code': 'DATABASE_ERROR',
             'message': 'Error consultando la base de datos.'
         }
 
-@staticmethod
 def format_product_name(value: str | None) -> str | None:
     if not value:
         return None
+
     acronyms = ['IRU', 'IP', 'UK', 'ID', 'BA']
     formatted = value.strip().lower().title()
+
     for acronym in acronyms:
         formatted = re.sub(
             rf'\b{acronym.title()}\b',
@@ -160,15 +200,35 @@ def format_product_name(value: str | None) -> str | None:
             formatted,
             flags=re.IGNORECASE
         )
+
     return formatted
 
-@staticmethod
+def _build_nit(nro_identificacion, digito_verificacion):
+    """
+    Construye el NIT conservando el comportamiento de la anotación ORM.
+    Si no existe dígito de verificación, devuelve únicamente la identificación.
+    """
+
+    if nro_identificacion is None:
+        if digito_verificacion is None:
+            return None
+
+        return f"-{digito_verificacion}"
+
+    nit = str(nro_identificacion).strip()
+
+    if digito_verificacion is not None:
+        nit += f"-{digito_verificacion}"
+
+    return nit
+
 def _get_active_services_queryset():
     ciclo_subquery = (
         CicloServActivosPlanta.objects.using('dwh')
         .filter(servicio=OuterRef('ser'))
         .values('ult_ciclo_fact')[:1]
     )
+
     active_services = (
         SfServiceLegv2.objects.using('dwh')
         .exclude(
@@ -207,23 +267,18 @@ def _get_active_services_queryset():
             )
         )
     )
-    client_tariff = (
-        active_services
-        .filter(nit=OuterRef('nit'))
-        .values('nit')
-        .annotate(total=Sum('tarifa'))
-        .values('total')[:1]
-    )
+
     return (
         active_services
         .annotate(
-            ult_ciclo_fact=Subquery(ciclo_subquery),
+            ult_ciclo_fact=Subquery(ciclo_subquery)
+        )
+        .annotate(
             ciclo_final=Coalesce(
                 Cast('ult_ciclo_fact', output_field=CharField()),
                 Cast('ciclo', output_field=CharField()),
                 output_field=CharField()
-            ),
-            tarifa_total_cliente=Subquery(client_tariff)
+            )
         )
         .filter(
             tipo_producto__in=['L2', 'L3', 'SATELITAL'],
@@ -244,7 +299,8 @@ def _get_active_services_queryset():
             'codigo_dane',
             'nit',
             'razon_social',
-            'tarifa_total_cliente',
+            'nro_identificacion',
+            'digito_verificacion',
             'anchodebanda',
             'capacidadbps',
             'tarifa',
@@ -258,7 +314,57 @@ def _get_active_services_queryset():
         )
     )
 
-@staticmethod
+def _get_client_tariffs():
+    """
+    Calcula la tarifa total por cliente.
+
+    Conserva las exclusiones utilizadas originalmente en active_services,
+    pero realiza la agregación en SQL Server y construye el diccionario
+    de NIT en Python.
+    """
+
+    services = (
+        SfServiceLegv2.objects.using('dwh')
+        .exclude(
+            estado_ser__in=[
+                'Cancelado',
+                'Error',
+                'En Proceso',
+                'Declinado'
+            ]
+        )
+        .exclude(ser='SER-280627')
+        .annotate(
+            ser_number=Cast(
+                Replace('ser', Value('SER-'), Value('')),
+                output_field=IntegerField()
+            )
+        )
+        .exclude(
+            ser_number__range=(275470, 275731)
+        )
+        .values(
+            'nro_identificacion',
+            'digito_verificacion'
+        )
+        .annotate(
+            total=Sum('tarifa')
+        )
+    )
+
+    client_tariffs = {}
+
+    for row in services:
+        nit = _build_nit(
+            row['nro_identificacion'],
+            row['digito_verificacion']
+        )
+
+        if nit is not None:
+            client_tariffs[nit] = row['total']
+
+    return client_tariffs
+
 def _apply_service_filters(queryset, filters):
     if filters.departments:
         departments = list(
@@ -266,7 +372,10 @@ def _apply_service_filters(queryset, filters):
             .filter(id__in=filters.departments)
             .values_list('name', flat=True)
         )
-        queryset = queryset.filter(departamento__in=departments)
+
+        queryset = queryset.filter(
+            departamento__in=departments
+        )
 
     if filters.municipalities:
         danes = list(
@@ -274,7 +383,10 @@ def _apply_service_filters(queryset, filters):
             .filter(id__in=filters.municipalities)
             .values_list('dane', flat=True)
         )
-        queryset = queryset.filter(codigo_dane__in=danes)
+
+        queryset = queryset.filter(
+            codigo_dane__in=danes
+        )
 
     if filters.product_families:
         queryset = queryset.filter(
@@ -282,10 +394,14 @@ def _apply_service_filters(queryset, filters):
         )
 
     if filters.products:
-        queryset = queryset.filter(producto__in=filters.products)
+        queryset = queryset.filter(
+            producto__in=filters.products
+        )
 
     if filters.plans:
-        queryset = queryset.filter(plan__in=filters.plans)
+        queryset = queryset.filter(
+            plan__in=filters.plans
+        )
 
     if filters.capacity_min is not None:
         queryset = queryset.filter(
@@ -298,7 +414,9 @@ def _apply_service_filters(queryset, filters):
         )
 
     if filters.clients:
-        queryset = queryset.filter(nit__in=filters.clients)
+        queryset = queryset.filter(
+            nit__in=filters.clients
+        )
 
     if filters.subsegments:
         subsegments = list(
@@ -306,25 +424,44 @@ def _apply_service_filters(queryset, filters):
             .filter(id__in=filters.subsegments)
             .values_list('name', flat=True)
         )
-        queryset = queryset.filter(nvosubsegmento__in=subsegments)
+
+        queryset = queryset.filter(
+            nvosubsegmento__in=subsegments
+        )
+
     return queryset
 
-@staticmethod
 def get_services(filters):
+    stage = "Inicialización"
     try:
+        logger.info("Iniciando consulta de servicios activos.")
+
+        # 1. Construcción del queryset base
+        stage = "Construcción del queryset base"
+
         queryset = _get_active_services_queryset()
+
+        # 2. Aplicación de filtros
+        stage = "Aplicación de filtros"
+
         queryset = _apply_service_filters(
             queryset,
             filters
         )
-        # Obtener los DANE presentes en los servicios filtrados
+
+        # 3. Obtener códigos DANE
+        stage = "Consulta de códigos DANE"
+
         danes = list(
             queryset.values_list(
                 'codigo_dane',
                 flat=True
             ).distinct()
         )
-        # Enriquecer únicamente los municipios correspondientes
+
+        # 4. Enriquecimiento de municipios
+        stage = "Consulta de información municipal"
+
         municipality_data = {
             str(m['dane']).zfill(5): {
                 'unprofitable': m['unprofitable'],
@@ -340,17 +477,24 @@ def get_services(filters):
                     'region__name'
                 )
         }
-        services = list(
+
+        # 5. Consulta final de servicios
+        stage = "Consulta final de servicios"
+
+        final_queryset = (
             queryset
             .annotate(
                 capacidad=F('anchodebanda'),
                 vlr_mbps=ExpressionWrapper(
                     F('tarifa') / NullIf(
                         F('capacidadbps'),
-                        Value(0, output_field=DecimalField(
-                            max_digits=20,
-                            decimal_places=4
-                        ))
+                        Value(
+                            0,
+                            output_field=DecimalField(
+                                max_digits=20,
+                                decimal_places=4
+                            )
+                        )
                     ),
                     output_field=DecimalField(
                         max_digits=20,
@@ -366,7 +510,6 @@ def get_services(filters):
                 'codigo_dane',
                 'nit',
                 'razon_social',
-                'tarifa_total_cliente',
                 'capacidad',
                 'capacidadbps',
                 'tarifa',
@@ -382,12 +525,47 @@ def get_services(filters):
             .order_by('-capacidadbps')
         )
 
+        services = list(final_queryset)
+
+        # 6. Obtener tarifas acumuladas por cliente
+        stage = "Consulta de tarifas acumuladas por cliente"
+
+        client_tariffs = _get_client_tariffs()
+
+        # 7. Enriquecimiento de resultados
+        stage = "Enriquecimiento de resultados"
+
         for service in services:
-            dane = str(service['codigo_dane'] or '').strip().zfill(5)
+            nit = service['nit']
+
+            service['tarifa_total_cliente'] = (
+                client_tariffs.get(nit)
+                if nit is not None
+                else None
+            )
+
+            dane = str(
+                service['codigo_dane'] or ''
+            ).strip().zfill(5)
+
             municipality = municipality_data.get(dane, {})
-            service['unprofitable'] = municipality.get('unprofitable', False)
+
+            service['unprofitable'] = municipality.get(
+                'unprofitable',
+                False
+            )
+
             service['node'] = municipality.get('node')
             service['region'] = municipality.get('region')
+
+        logger.info(
+            "Consulta finalizada. Servicios: %s | DANE: %s | "
+            "Municipios: %s | Clientes con tarifa acumulada: %s",
+            len(services),
+            len(danes),
+            len(municipality_data),
+            len(client_tariffs)
+        )
 
         return {
             'success': True,
@@ -395,97 +573,100 @@ def get_services(filters):
         }
 
     except Exception:
-        logger.exception("Error al consultar servicios activos con los filtros aplicados.")
+        logger.exception(
+            "Error en get_services. Etapa: %s",
+            stage
+        )
+
         return {
             'success': False,
             'code': 'DATABASE_ERROR',
             'message': 'Error consultando la base de datos.'
         }
-    
 
-
-@staticmethod
-def get_services_reference_by_municipality(municipality, min_cap, max_cap):
-    MIN_SAMPLE = 5
-    DEPT_SAMPLE = 5
-    with engine.connect() as conn:
-        df_services_reference = pd.read_sql(
-            text(ser_queries.QUERY_SERVICES_REFERENCE_MUN),
-            conn,
-            params={
-                "dane": municipality.dane,
-                "min_cap": min_cap,
-                "max_cap": max_cap
-            }
+def _get_services_reference_queryset(
+    min_cap,
+    max_cap,
+    subsegment,
+    product
+):
+    return (
+        SfServiceLegv2.objects.using('dwh')
+        .exclude(
+            estado_ser__in=[
+                'Cancelado',
+                'Error',
+                'En Proceso',
+                'Declinado'
+            ]
         )
-        if len(df_services_reference) >= MIN_SAMPLE:
+        .exclude(ser='SER-280627')
+        .filter(
+            tarifa__gt=10,
+            capacidadbps__gt=0,
+            capacidadbps__gte=min_cap,
+            capacidadbps__lte=max_cap,
+            nvosubsegmento=subsegment,
+            producto=product
+        )
+        .annotate(
+            vlr_mbps=ExpressionWrapper(
+                Cast(F('tarifa'), FloatField()) /
+                Cast(F('capacidadbps'), FloatField()),
+                output_field=FloatField()
+            )
+        )
+    )
+
+def get_services_reference_by_municipality(
+        municipality,
+        min_cap,
+        max_cap,
+        subsegment,
+        product
+    ):
+        MIN_SAMPLE = 5
+        DEPT_SAMPLE = 5
+        queryset = _get_services_reference_queryset(
+            min_cap,
+            max_cap,
+            subsegment,
+            product
+        )
+        # Referencia municipal
+        municipality_qs = queryset.filter(
+            codigo_dane=municipality.dane
+        )
+        if municipality_qs.count() >= MIN_SAMPLE:
             return _build_reference(
-                df_services_reference,
+                municipality_qs,
                 'municipality'
             )
-        df_services_reference = pd.read_sql(
-            text(ser_queries.QUERY_SERVICES_REFERENCE_DEPT),
-            conn,
-            params={
-                "department": municipality.department.name,
-                "min_cap": min_cap,
-                "max_cap": max_cap
-            }
+        # Referencia departamental
+        department_qs = queryset.filter(
+            departamento=municipality.department.name
         )
-        if len(df_services_reference) >= DEPT_SAMPLE:
+        if department_qs.count() >= DEPT_SAMPLE:
             return _build_reference(
-                df_services_reference,
+                department_qs,
                 'department'
             )
-        df_services_reference = pd.read_sql(
-            text(ser_queries.QUERY_SERVICES_REFERENCE_NATIONAL),
-            conn,
-            params={
-                "min_cap": min_cap,
-                "max_cap": max_cap
-            }
-        )
-
+        # Referencia nacional
         return _build_reference(
-            df_services_reference,
+            queryset,
             'national'
         )
-    # conn = pyodbc.connect(
-    #     r"DRIVER={ODBC Driver 17 for SQL Server};"
-    #     r"SERVER=10.142.16.246\accdwh;"
-    #     r"DATABASE=Azteca_Staging;"
-    #     r"Trusted_Connection=yes;"
-    # )
-    # try:
-    #     df_services_reference = pd.read_sql(
-    #         ser_queries.QUERY_SERVICES_REFERENCE_MUN, 
-    #         conn,
-    #         params=[municipality.dane, min_cap, max_cap]
-    #     )
-    #     if len(df_services_reference) >= MIN_SAMPLE:
-    #         return _build_reference(df_services_reference,'municipality')
-    #     df_services_reference = pd.read_sql(
-    #         ser_queries.QUERY_SERVICES_REFERENCE_DEPT, 
-    #         conn,
-    #         params=[municipality.department.name, min_cap, max_cap]
-    #     )
-    #     if len(df_services_reference) >= DEPT_SAMPLE:
-    #         return _build_reference(df_services_reference, 'department')
-    #     df_services_reference = pd.read_sql(
-    #         ser_queries.QUERY_SERVICES_REFERENCE_NATIONAL, 
-    #         conn,
-    #         params=[min_cap, max_cap]
-    #     )
-    #     return _build_reference(df_services_reference, 'national')
-    # finally:
-    #     conn.close()
 
-@staticmethod
-def _build_reference(df, source):
+
+def _build_reference(queryset, source):
+    values = list(
+        queryset.values_list('vlr_mbps', flat=True)
+    )
+    sample_size = len(values)
     return MarketReference(
         source=source,
-        sample_size=len(df),
-        median_price_mbps=float(df["VLR_MBPS"].median()),
-        mean_price_mbps=float(df["VLR_MBPS"].mean()),
-        std_price_mbps=float(df["VLR_MBPS"].std())
+        sample_size=sample_size,
+        median_price_mbps=float(median(values)) if values else None,
+        mean_price_mbps=float(mean(values)) if values else None,
+        std_price_mbps=float(stdev(values)) if sample_size > 1 else None
     )

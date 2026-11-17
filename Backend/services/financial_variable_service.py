@@ -28,9 +28,12 @@ class FinancialVariableService:
             ica=variables["ICA"] / 100,
             cartera=variables["PORTF"],
             monthly_wacc=variables["WACC_M"] / 100,
-            wacc=variables["WACC_A"] / 100
+            wacc=variables["WACC_A"] / 100,
+            min_vpn=variables['VPN_MIN'],
+            min_margin=variables['MARGIN_MIN'] / 100,
+            max_payback=variables['PAYBACK_MAX_RATIO'] / 100
         )
-
+# VPN_MIN MARGIN_MIN PAYBACK_MAX_RATIO
     @staticmethod
     def update_variable(key: str, value: float, area):
         variable = models.FinancialVariable.objects.get(

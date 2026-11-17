@@ -18,3 +18,7 @@ class FinancialVariables:
     cartera: float
     monthly_wacc: float
     wacc: float
+    min_vpn : float
+    min_margin : float
+    max_payback : float
+    

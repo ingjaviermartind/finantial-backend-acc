@@ -67,10 +67,10 @@ class financial_engine:
         tir = npf.irr(cashflows)
         margin = vpn / income_vpn if income_vpn else 0
         approved = (
-            vpn > 0
-            and margin >= 0.6
+            vpn > variables.min_vpn
+            and margin >= variables.min_margin
             and payback is not None
-            and (payback / project.contract_time) <= 0.65
+            and (payback / project.contract_time) <= variables.max_payback
         )
         return EvaluationResult(
             approved=approved,
