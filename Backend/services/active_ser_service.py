@@ -24,7 +24,10 @@ from django.db.models import (
     ExpressionWrapper,
     OuterRef,
     Subquery,
-    FloatField
+    FloatField,
+    Count,
+    Sum,
+    Q
 )
 
 from django.db.models.functions import (
@@ -41,6 +44,7 @@ from accdwh.models import (
 )
 
 from statistics import median, mean, stdev
+from decimal import Decimal
 
 
 logger = logging.getLogger(__name__)
@@ -281,7 +285,7 @@ def _get_active_services_queryset():
             )
         )
         .filter(
-            tipo_producto__in=['L2', 'L3', 'SATELITAL'],
+            tipo_producto__in=['L2', 'L3', 'SATELITAL', 'SVA', 'SVAS'],
             tarifa__gt=1
         )
         .exclude(
@@ -449,6 +453,31 @@ def get_services(filters):
             filters
         )
 
+        # 2.1. Métricas de la población filtrada
+        stage = "Cálculo de métricas"
+
+        aggregates = queryset.aggregate(
+            total_services=Count('ser'),
+            unique_clients=Count('nit', distinct=True),
+            total_mbps=Sum('capacidadbps'),
+            total_mrc=Sum(
+                'tarifa',
+                filter=~Q(tipo_producto='SVAS')
+            ),
+            mrc_svas=Sum(
+                'tarifa',
+                filter=Q(tipo_producto='SVAS')
+            )
+        )
+
+        metrics = {
+            'total_services': aggregates['total_services'] or 0,
+            'unique_clients': aggregates['unique_clients'] or 0,
+            'total_mbps': aggregates['total_mbps'] or Decimal('0'),
+            'total_mrc': aggregates['total_mrc'] or Decimal('0'),
+            'mrc_svas': aggregates['mrc_svas'] or Decimal('0'),
+        }
+
         # 3. Obtener códigos DANE
         stage = "Consulta de códigos DANE"
 
@@ -505,6 +534,7 @@ def get_services(filters):
             )
             .values(
                 'ser',
+                'ciclo_final',
                 'departamento',
                 'municipio',
                 'codigo_dane',
@@ -520,7 +550,8 @@ def get_services(filters):
                 'plan',
                 'tipo_tecnologia',
                 'subsegmento',
-                'ciclo_final'
+                'servicio_de_conectividad'
+                
             )
             .order_by('-capacidadbps')
         )
@@ -569,6 +600,7 @@ def get_services(filters):
 
         return {
             'success': True,
+            'metrics': metrics,
             'data': services
         }
 

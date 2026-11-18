@@ -46,7 +46,7 @@ class PricingViewSet(viewsets.ViewSet):
     permission_classes = [CanEvaluate]
     @action(detail=False, methods=['post'])
     def evaluate(self, request):
-        user_name = request.user.get_full_name() or request.user.username
+        # user_name = request.user.get_full_name() or request.user.username
         serializer = PricingRequestSerializer(
             data=request.data
         )

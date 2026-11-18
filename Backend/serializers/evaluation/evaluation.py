@@ -1,5 +1,17 @@
 from rest_framework import serializers
 
+class PriceComparisonSerializer(serializers.Serializer):
+    breakeven = serializers.FloatField(allow_null=True)
+    ml_price = serializers.FloatField(allow_null=True)
+    suggested_price = serializers.FloatField(allow_null=True)
+    evaluated_price = serializers.FloatField(allow_null=True)
+
+    market_average = serializers.FloatField(allow_null=True)
+    market_median = serializers.FloatField(allow_null=True)
+
+    tariff_base = serializers.FloatField(allow_null=True)
+    tariff_discount = serializers.FloatField(allow_null=True)
+    tariff_special = serializers.FloatField(allow_null=True)
 
 class EvaluationSummarySerializer(serializers.Serializer):
     approved = serializers.BooleanField()
@@ -32,13 +44,14 @@ class PricingRecommendationDetailedSerializer(
     predicted = EvaluationDetailedSerializer()
     floor = EvaluationDetailedSerializer()
 
-    mean_price_mbps = serializers.FloatField()
-    median_price_mbps = serializers.FloatField()
-    market_std = serializers.FloatField()
-    market_source = serializers.CharField()
-    monthly_wacc = serializers.FloatField()
-    wacc = serializers.FloatField()
-    market_sample = serializers.IntegerField()
-    ref_price_mbps = serializers.FloatField()
-    ref_price_mbps_dis = serializers.FloatField()
-    ref_price_mbps_special = serializers.FloatField()
+    price_comparison = PriceComparisonSerializer()
+    # mean_price_mbps = serializers.FloatField()
+    # median_price_mbps = serializers.FloatField()
+    # market_std = serializers.FloatField()
+    # market_source = serializers.CharField()
+    # monthly_wacc = serializers.FloatField()
+    # wacc = serializers.FloatField()
+    # market_sample = serializers.IntegerField()
+    # ref_price_mbps = serializers.FloatField()
+    # ref_price_mbps_dis = serializers.FloatField()
+    # ref_price_mbps_special = serializers.FloatField()
