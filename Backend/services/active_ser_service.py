@@ -459,7 +459,10 @@ def get_services(filters):
         aggregates = queryset.aggregate(
             total_services=Count('ser'),
             unique_clients=Count('nit', distinct=True),
-            total_mbps=Sum('capacidadbps'),
+            total_mbps=Sum(
+                'capacidadbps',
+                filter=Q(tipo_producto='SVA')
+            ),
             total_mrc=Sum(
                 'tarifa',
                 filter=~Q(tipo_producto='SVAS')
