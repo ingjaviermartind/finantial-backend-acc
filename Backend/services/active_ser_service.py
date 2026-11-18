@@ -243,16 +243,6 @@ def _get_active_services_queryset():
                 'Declinado'
             ]
         )
-        .exclude(ser='SER-280627')
-        .annotate(
-            ser_number=Cast(
-                Replace('ser', Value('SER-'), Value('')),
-                output_field=IntegerField()
-            )
-        )
-        .exclude(
-            ser_number__range=(275470, 275731)
-        )
         .annotate(
             nit=Case(
                 When(
@@ -285,7 +275,7 @@ def _get_active_services_queryset():
             )
         )
         .filter(
-            tipo_producto__in=['L2', 'L3', 'SATELITAL', 'SVA', 'SVAS'],
+            tipo_producto__in=['L2', 'L3', 'SATELITAL', 'SVAS', 'SVA'],
             tarifa__gt=1
         )
         .exclude(
@@ -313,6 +303,7 @@ def _get_active_services_queryset():
             'producto',
             'plan',
             'tipo_tecnologia',
+            'tipo_producto',
             'nvosubsegmento',
             'servicio_de_conectividad'
         )
@@ -337,7 +328,6 @@ def _get_client_tariffs():
                 'Declinado'
             ]
         )
-        .exclude(ser='SER-280627')
         .annotate(
             ser_number=Cast(
                 Replace('ser', Value('SER-'), Value('')),
@@ -461,7 +451,7 @@ def get_services(filters):
             unique_clients=Count('nit', distinct=True),
             total_mbps=Sum(
                 'capacidadbps',
-                filter=Q(tipo_producto='SVA')
+                filter=~Q(tipo_producto='SATELITAL')
             ),
             total_mrc=Sum(
                 'tarifa',
@@ -552,6 +542,7 @@ def get_services(filters):
                 'producto',
                 'plan',
                 'tipo_tecnologia',
+                'tipo_producto',
                 'subsegmento',
                 'servicio_de_conectividad'
                 
