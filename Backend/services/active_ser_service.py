@@ -190,13 +190,16 @@ def get_services_options():
             'message': 'Error consultando la base de datos.'
         }
 
+import re
+
 def format_product_name(value: str | None) -> str | None:
     if not value:
         return None
-
-    acronyms = ['IRU', 'IP', 'UK', 'ID', 'BA']
     formatted = value.strip().lower().title()
-
+    # Conservar "sin" en minúscula
+    formatted = re.sub(r'\bSin\b', 'sin', formatted)
+    formatted = re.sub(r'\bDe\b', 'de', formatted)
+    acronyms = ['IRU', 'IP', 'UK', 'ID', 'BA']
     for acronym in acronyms:
         formatted = re.sub(
             rf'\b{acronym.title()}\b',
@@ -204,7 +207,6 @@ def format_product_name(value: str | None) -> str | None:
             formatted,
             flags=re.IGNORECASE
         )
-
     return formatted
 
 def _build_nit(nro_identificacion, digito_verificacion):

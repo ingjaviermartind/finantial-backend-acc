@@ -2,6 +2,10 @@ from rest_framework import serializers
 from Backend.models import FinancialVariable
 
 class FinancialVariableSerializer(serializers.ModelSerializer):
+    area_name = serializers.CharField(
+        source='area.name',
+        read_only=True
+    )
     class Meta:
         model = FinancialVariable
         fields = [
@@ -10,6 +14,8 @@ class FinancialVariableSerializer(serializers.ModelSerializer):
             'name',
             'value',
             'unit',
+            'area',
+            'area_name',
             'updated_at',
         ]
         read_only_fields = [
@@ -17,6 +23,8 @@ class FinancialVariableSerializer(serializers.ModelSerializer):
             'key',
             'name',
             'unit',
+            'area',
+            'area_name',
             'updated_at',
         ]
 
