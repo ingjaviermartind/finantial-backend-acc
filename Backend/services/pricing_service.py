@@ -71,9 +71,7 @@ class PricingService:
         predicted_price_mpbs = predict_vlr_mbps_nw(prj.capacity_mbps, municipality, prj.contract_time, prj.product_type, prj.product, prj.subsegment)
         predicted_result = financial_engine.evaluate_price_per_mbps(prj,vars_ev,predicted_price_mpbs)
         floor_result = PricingOptimizer.find_floor(prj,vars_ev)
-        suggested = (
-            predicted_result if predicted_result.approved else floor_result
-        )
+        suggested = (predicted_result if predicted_result.approved else floor_result)
         min_cap, max_cap = PricingService.get_capacity_group(prj.capacity_mbps)
         market : MarketReference = get_services_reference_by_municipality(
             municipality, 

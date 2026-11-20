@@ -115,9 +115,7 @@ class PricingViewSet(viewsets.ViewSet):
             request.user.get_full_name()
             or request.user.username
         )
-        serializer = PricingRequestSerializer(
-            data=request.data
-        )
+        serializer = PricingRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         price_per_mbps = data.get("price_per_mbps")

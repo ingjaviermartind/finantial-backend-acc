@@ -1,5 +1,45 @@
 from rest_framework import serializers
 
+class CashFlowPeriodSerializer(serializers.Serializer):
+    period = serializers.IntegerField()
+    # Ingresos
+    income = serializers.FloatField()
+
+    # Desglose OPEX
+    eth_output = serializers.FloatField()
+    oym = serializers.FloatField()
+    poles = serializers.FloatField()
+    ducts = serializers.FloatField()
+    call_center = serializers.FloatField()
+    distribution = serializers.FloatField()
+    collection = serializers.FloatField()
+    opex = serializers.FloatField()
+
+    # Cargos
+    gmf = serializers.FloatField()
+    fontic = serializers.FloatField()
+    ica = serializers.FloatField()
+    cartera = serializers.FloatField()
+
+    # Resultados
+    ebitda = serializers.FloatField()
+    ebitda_ajustado = serializers.FloatField()
+
+    # CAPEX
+    web_capex = serializers.FloatField()
+    initial_capex = serializers.FloatField()
+
+    # Flujo de caja
+    fcl = serializers.FloatField()
+    discount_factor = serializers.FloatField()
+    discounted_fcl = serializers.FloatField()
+    accumulated_fcl = serializers.FloatField()
+
+class FinancialCashFlowSerializer(serializers.Serializer):
+    project_snapshot = serializers.DictField()
+    variables_snapshot = serializers.DictField()
+    periods = CashFlowPeriodSerializer(many=True)
+
 class PriceComparisonSerializer(serializers.Serializer):
     breakeven = serializers.FloatField(allow_null=True)
     ml_price = serializers.FloatField(allow_null=True)
@@ -24,12 +64,10 @@ class EvaluationDetailedSerializer(EvaluationSummarySerializer):
     opex_m = serializers.FloatField()
     vpn = serializers.FloatField()
     tir = serializers.FloatField()
-    payback = serializers.IntegerField(allow_null=True)
+    payback = serializers.FloatField()
     payback_percent = serializers.FloatField()
     margin = serializers.FloatField()
-    cashflows = serializers.ListField(
-        child=serializers.FloatField()
-    )
+    financial_cashflow = FinancialCashFlowSerializer()
 
 class PricingRecommendationSummarySerializer(serializers.Serializer):
     suggested = EvaluationSummarySerializer()
@@ -37,21 +75,10 @@ class PricingRecommendationSummarySerializer(serializers.Serializer):
     floor = EvaluationSummarySerializer()
 
 
-class PricingRecommendationDetailedSerializer(
-    PricingRecommendationSummarySerializer
-):
+class PricingRecommendationDetailedSerializer(PricingRecommendationSummarySerializer):
     suggested = EvaluationDetailedSerializer()
     predicted = EvaluationDetailedSerializer()
     floor = EvaluationDetailedSerializer()
 
     price_comparison = PriceComparisonSerializer()
-    # mean_price_mbps = serializers.FloatField()
-    # median_price_mbps = serializers.FloatField()
-    # market_std = serializers.FloatField()
-    # market_source = serializers.CharField()
-    # monthly_wacc = serializers.FloatField()
-    # wacc = serializers.FloatField()
-    # market_sample = serializers.IntegerField()
-    # ref_price_mbps = serializers.FloatField()
-    # ref_price_mbps_dis = serializers.FloatField()
-    # ref_price_mbps_special = serializers.FloatField()
+
