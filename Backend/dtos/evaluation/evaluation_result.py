@@ -1,21 +1,5 @@
 from dataclasses import dataclass
 
-@dataclass (slots = True)
-class EvaluationResultDTO:
-    approved: bool
-    capex : float
-    opex_m : float
-    price_monthly: float
-    price_per_mbps: float
-    vpn: float
-    tir: float
-    payback: float | None
-    payback_percent : float
-    margin: float
-    cashflows: list[float]
-    sensitivity: float | None = None
-    financial_cashflow : FinancialCashFlowDTO | None = None
-
 @dataclass(slots=True)
 class CashFlowPeriodDTO:
     period: int
@@ -48,12 +32,27 @@ class CashFlowPeriodDTO:
     accumulated_fcl: float
     vpn : float
 
-
 @dataclass(slots=True)
 class FinancialCashFlowDTO:
     project_snapshot: dict
     variables_snapshot: dict
     periods: list[CashFlowPeriodDTO]
+
+@dataclass (slots = True)
+class EvaluationResultDTO:
+    approved: bool
+    capex : float
+    opex_m : float
+    price_monthly: float
+    price_per_mbps: float
+    vpn: float
+    tir: float
+    payback: float | None
+    payback_percent : float
+    margin: float
+    cashflows: list[float]
+    sensitivity: float | None = None
+    financial_cashflow : FinancialCashFlowDTO | None = None
 
 @dataclass(slots=True)
 class MonthlyDiscountDTO:
