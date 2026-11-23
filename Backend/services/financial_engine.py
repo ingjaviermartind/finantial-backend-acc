@@ -122,7 +122,8 @@ class financial_engine:
                     fcl=fcl,
                     discount_factor=disc_factor,
                     discounted_fcl=disc_fcl,
-                    accumulated_fcl=acc_fcl
+                    accumulated_fcl=acc_fcl,
+                    vpn=vpn
                 )
             )
         tir = npf.irr(cashflows)

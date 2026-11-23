@@ -46,6 +46,7 @@ class CashFlowPeriodDTO:
     discount_factor: float
     discounted_fcl: float
     accumulated_fcl: float
+    vpn : float
 
 
 @dataclass(slots=True)

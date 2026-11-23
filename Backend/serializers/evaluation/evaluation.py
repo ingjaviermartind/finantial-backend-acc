@@ -34,18 +34,27 @@ class CashFlowPeriodSerializer(serializers.Serializer):
     discount_factor = serializers.FloatField()
     discounted_fcl = serializers.FloatField()
     accumulated_fcl = serializers.FloatField()
+    vpn = serializers.FloatField()
 
 class FinancialCashFlowSerializer(serializers.Serializer):
     project_snapshot = serializers.DictField()
     variables_snapshot = serializers.DictField()
     periods = CashFlowPeriodSerializer(many=True)
 
-class PriceComparisonSerializer(serializers.Serializer):
+class PriceSummarySerializer(serializers.Serializer):
+    breakeven = serializers.FloatField(allow_null=True)
+    ml_price = serializers.FloatField(allow_null=True)
+    tariff_base = serializers.FloatField(allow_null=True)
+    tariff_discount = serializers.FloatField(allow_null=True)
+    tariff_special = serializers.FloatField(allow_null=True)
+
+class PriceDetailedSerializer(PriceSummarySerializer):
     breakeven = serializers.FloatField(allow_null=True)
     ml_price = serializers.FloatField(allow_null=True)
     suggested_price = serializers.FloatField(allow_null=True)
-    evaluated_price = serializers.FloatField(allow_null=True)
 
+    sample_size = serializers.IntegerField(allow_null=True)
+    source = serializers.CharField()
     market_average = serializers.FloatField(allow_null=True)
     market_median = serializers.FloatField(allow_null=True)
 
@@ -73,12 +82,11 @@ class PricingRecommendationSummarySerializer(serializers.Serializer):
     suggested = EvaluationSummarySerializer()
     predicted = EvaluationSummarySerializer()
     floor = EvaluationSummarySerializer()
-
+    price_comparison = PriceSummarySerializer()
 
 class PricingRecommendationDetailedSerializer(PricingRecommendationSummarySerializer):
     suggested = EvaluationDetailedSerializer()
     predicted = EvaluationDetailedSerializer()
     floor = EvaluationDetailedSerializer()
-
-    price_comparison = PriceComparisonSerializer()
+    price_comparison = PriceDetailedSerializer()
 
