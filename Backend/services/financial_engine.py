@@ -12,10 +12,12 @@ class financial_engine:
     def calculate_opex(project : Project, variables : FinancialVariables) -> float:
         return (
             (project.capacity_mbps * variables.trm * variables.eth_output_mbps) 
-            + variables.oym
-            + variables.poles
-            + variables.ducts
             + variables.call_center
+            + variables.oym
+
+            + variables.poles
+            + (variables.ducts * variables.trm)
+            
             + variables.distribution
             + variables.collection
         )
@@ -103,7 +105,7 @@ class financial_engine:
                     eth_output=eth_output if t > 0 else 0,
                     oym=variables.oym if t > 0 else 0,
                     poles=variables.poles if t > 0 else 0,
-                    ducts=variables.ducts if t > 0 else 0,
+                    ducts=(variables.ducts * variables.trm) if t > 0 else 0,
                     call_center=variables.call_center if t > 0 else 0,
                     distribution=variables.distribution if t > 0 else 0,
                     collection=variables.collection if t > 0 else 0,
