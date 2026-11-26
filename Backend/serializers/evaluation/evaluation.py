@@ -35,6 +35,7 @@ class CashFlowPeriodSerializer(serializers.Serializer):
     discounted_fcl = serializers.FloatField()
     accumulated_fcl = serializers.FloatField()
     vpn = serializers.FloatField()
+    income_vpn = serializers.FloatField()
 
 class FinancialCashFlowSerializer(serializers.Serializer):
     project_snapshot = serializers.DictField()

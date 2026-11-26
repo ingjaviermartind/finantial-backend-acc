@@ -31,6 +31,7 @@ class CashFlowPeriodDTO:
     discounted_fcl: float
     accumulated_fcl: float
     vpn : float
+    income_vpn : float
 
 @dataclass(slots=True)
 class FinancialCashFlowDTO:
