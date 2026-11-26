@@ -1,6 +1,14 @@
-from Backend.dtos import Project, FinancialVariables, EvaluationResultDTO, CashFlowPeriodDTO, FinancialCashFlowDTO
+from Backend.dtos import (
+    Project, 
+    FinancialVariables, 
+    EvaluationResultDTO, 
+    CashFlowPeriodDTO, 
+    FinancialCashFlowDTO,
+    ProjectEconomicsBuilder,
+    ProjectEconomics
+)
 import numpy_financial as npf
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 class financial_engine:
     @staticmethod
@@ -23,17 +31,21 @@ class financial_engine:
         )
 
     @staticmethod
-    def evaluate_project(project : Project, variables : FinancialVariables, sensitivity) -> EvaluationResultDTO:
-        web_capex = financial_engine.calculate_capex(project, variables)
-        capex = web_capex + project.initial_capex
-        opex = financial_engine.calculate_opex(project, variables)
-        price_monthly = ((capex + (opex * project.contract_time)) / project.contract_time) * sensitivity * variables.margin_factor
-        price_monthly = round(price_monthly / 1000) * 1000
+    def evaluate_project(project : Project, variables : FinancialVariables) -> EvaluationResultDTO:
+        # web_capex = financial_engine.calculate_capex(project, variables)
+        # capex = web_capex + project.initial_capex
+        # opex = financial_engine.calculate_opex(project, variables)
+        # price_monthly = ((capex + (opex * project.contract_time)) / project.contract_time) * sensitivity * variables.margin_factor
+        # price_monthly = round(price_monthly / 1000) * 1000
+        economics : ProjectEconomics = ProjectEconomicsBuilder.build(
+            project,
+            variables
+        )
 
-        gmf = variables.gmf * price_monthly
-        fontic = variables.fontic * price_monthly
-        ica = variables.ica * price_monthly
-        cartera = variables.cartera * price_monthly
+        gmf = variables.gmf * economics.monthly_income
+        fontic = variables.fontic * economics.monthly_income
+        ica = variables.ica * economics.monthly_income
+        cartera = variables.cartera * economics.monthly_income
 
         monthly_wacc = variables.monthly_wacc
 
@@ -59,21 +71,21 @@ class financial_engine:
         for t in range (project.contract_time + 1):
             if t == 0:
                 income = project.initial_income - initial_taxes if project.initial_income else 0
-                current_capex = capex
+                current_capex = economics.capex
                 current_gmf = initial_gmf
                 current_fontic = initial_fontic
                 current_ica = initial_ica
                 current_cartera = 0
 
             else:
-                income = price_monthly
+                income = economics.monthly_income
                 current_capex = 0
                 current_gmf = gmf
                 current_fontic = fontic
                 current_ica = ica
                 current_cartera = cartera
 
-            ebitda = income - opex if t > 0 else 0 
+            ebitda = income - economics.opex_monthly if t > 0 else 0 
             ebitda_dis = (
                 ebitda
                 - gmf
@@ -109,7 +121,7 @@ class financial_engine:
                     call_center=variables.call_center if t > 0 else 0,
                     distribution=variables.distribution if t > 0 else 0,
                     collection=variables.collection if t > 0 else 0,
-                    opex=opex if t > 0 else 0,
+                    opex=economics.opex_monthly if t > 0 else 0,
 
                     gmf=current_gmf,
                     fontic=current_fontic,
@@ -119,7 +131,7 @@ class financial_engine:
                     ebitda=ebitda,
                     ebitda_ajustado=ebitda_dis,
 
-                    web_capex=web_capex if t > 0 else 0,
+                    web_capex=economics.capex if t > 0 else 0,
                     initial_capex=current_capex,
                     fcl=fcl,
                     discount_factor=disc_factor,
@@ -144,32 +156,40 @@ class financial_engine:
         )
         return EvaluationResultDTO(
             approved=approved,
-            capex=capex,
-            opex_m=opex,
-            price_monthly=price_monthly,
-            price_per_mbps=price_monthly / project.capacity_mbps,
+            capex=economics.capex,
+            opex_m=economics.opex_monthly,
+            price_monthly=economics.monthly_income,
+            price_per_mbps=economics.monthly_income / project.capacity_mbps,
             vpn=vpn,
             tir=tir,
             payback=payback,
             payback_percent = (payback / project.contract_time) if payback is not None else 0,
             margin=margin,
             cashflows=cashflows,
-            sensitivity=sensitivity,
+            sensitivity=project.sensitivity,
             financial_cashflow=financial_cashflow
         )
 
     
     @staticmethod
-    def evaluate_price_per_mbps(project : Project, variables : FinancialVariables, capacity_mbps : float) -> EvaluationResultDTO:
-        capex = financial_engine.calculate_capex(project, variables) + project.initial_capex
-        opex = financial_engine.calculate_opex(project, variables)
-        price_monthly = capacity_mbps * project.capacity_mbps
+    def evaluate_price_per_mbps(project : Project, variables : FinancialVariables, value_mbps : float) -> EvaluationResultDTO:
+        economics : ProjectEconomics = ProjectEconomicsBuilder.build(
+            project,
+            variables
+        )
+        target_monthly_income = value_mbps * project.capacity_mbps
+        # capex = financial_engine.calculate_capex(project, variables) + project.initial_capex
+        # opex = financial_engine.calculate_opex(project, variables)
+        # price_monthly = capacity_mbps * project.capacity_mbps
         sensitivity = (
-            price_monthly * project.contract_time
-            / ((capex + opex * project.contract_time) * variables.margin_factor)
+            target_monthly_income * economics.contract_time
+            / ((economics.capex + economics.opex_monthly * economics.contract_time) * variables.margin_factor)
+        )
+        project_variant = replace(
+            project,
+            sensitivity=sensitivity
         )
         return financial_engine.evaluate_project(
-            project,
-            variables,
-            sensitivity
+            project_variant,
+            variables
         )

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from Backend.dtos import Project, PricingRecommendation
+from Backend.dtos import TelcoProject, PricingRecommendation
 from Backend.permissions import CanEvaluate, can_view_detailed_results
 from Backend.models import Municipality, ProductCatalog, Subsegment
 from Backend.serializers import (PricingRequestSerializer, 
@@ -78,7 +78,7 @@ class PricingViewSet(viewsets.ViewSet):
                 "user_id": request.user.id,
             }
         )
-        prj = Project(
+        prj = TelcoProject(
             capacity_mbps=data['capacity_mbps'],
             contract_time=data['contract_time'],
             initial_income=data['initial_income'],
@@ -152,7 +152,7 @@ class PricingViewSet(viewsets.ViewSet):
                 "user_id": request.user.id,
             }
         )
-        prj = Project(
+        prj = TelcoProject(
             capacity_mbps=data['capacity_mbps'],
             contract_time=data['contract_time'],
             initial_income=data['initial_income'],
