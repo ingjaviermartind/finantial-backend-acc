@@ -46,13 +46,11 @@ class TelcoProject(Project):
             * variables.trm
             * variables.web_capex
         )
-
         return web_capex + self.initial_capex
+    
     def calculate_opex(self, variables) -> float:
         return (
-            self.capacity_mbps
-            * variables.trm
-            * variables.eth_output_mbps
+            self.capacity_mbps * variables.trm * variables.eth_output_mbps
             + variables.call_center
             + variables.oym
             + variables.poles

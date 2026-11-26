@@ -22,10 +22,8 @@ class financial_engine:
             (project.capacity_mbps * variables.trm * variables.eth_output_mbps) 
             + variables.call_center
             + variables.oym
-
             + variables.poles
             + (variables.ducts * variables.trm)
-            
             + variables.distribution
             + variables.collection
         )
@@ -178,9 +176,6 @@ class financial_engine:
             variables
         )
         target_monthly_income = value_mbps * project.capacity_mbps
-        # capex = financial_engine.calculate_capex(project, variables) + project.initial_capex
-        # opex = financial_engine.calculate_opex(project, variables)
-        # price_monthly = capacity_mbps * project.capacity_mbps
         sensitivity = (
             target_monthly_income * economics.contract_time
             / ((economics.capex + economics.opex_monthly * economics.contract_time) * variables.margin_factor)
