@@ -6,6 +6,7 @@ from .catalog import Subsegment, Capacity, ProductCatalog
 from .geography import Region, Municipality
 from .users import Area
 
+
 class FinancialVariable(models.Model):
 
     class Unit (models.TextChoices):
@@ -124,8 +125,12 @@ class QuoteLog(models.Model):
         on_delete=models.PROTECT,
         related_name='quote_logs'
     )
-    capacity = models.FloatField()
-    contract_time = models.FloatField()
+    capacity = models.DecimalField(
+        max_digits=15,
+        decimal_places=6
+    )
+
+    contract_time = models.PositiveIntegerField()
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

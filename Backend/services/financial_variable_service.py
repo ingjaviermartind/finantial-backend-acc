@@ -1,15 +1,14 @@
 from Backend.dtos import FinancialVariables
 from Backend import models
+from Backend.utils import to_decimal
 
 class FinancialVariableService:
 
     @staticmethod
     def get_variables(area) -> FinancialVariables:
         variables = {
-            item.key: float(item.value)
-            for item in models.FinancialVariable.objects.filter(
-                area=area
-            )
+            item.key: to_decimal(item.value)
+            for item in models.FinancialVariable.objects.filter(area=area)
         }
 
         return FinancialVariables(
@@ -35,13 +34,13 @@ class FinancialVariableService:
         )
 # VPN_MIN MARGIN_MIN PAYBACK_MAX_RATIO
     @staticmethod
-    def update_variable(key: str, value: float, area):
+    def update_variable(key: str, value, area):
         variable = models.FinancialVariable.objects.get(
             key=key,
             area=area
         )
 
-        variable.value = value
+        variable.value = to_decimal(value)
         variable.save(update_fields=["value", "updated_at"])
 
         return variable

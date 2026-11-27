@@ -7,13 +7,17 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from Backend.dtos import TelcoProject, PricingRecommendation
 from Backend.permissions import CanEvaluate, can_view_detailed_results
 from Backend.models import Municipality, ProductCatalog, Subsegment
-from Backend.serializers import (PricingRequestSerializer, 
-                                 PricingRecommendationDetailedSerializer, 
-                                 PricingRecommendationSummarySerializer, 
-                                 EvaluationSummarySerializer, 
-                                 EvaluationDetailedSerializer)
+from Backend.serializers import (
+    PricingRequestSerializer, 
+    PricingRecommendationDetailedSerializer, 
+    PricingRecommendationSummarySerializer, 
+    EvaluationSummarySerializer, 
+    EvaluationDetailedSerializer
+)
 from Backend.services.pricing_service import PricingService
 from Backend.services.quote_log_service import QuoteLogService
+
+from Backend.utils import ZERO
 
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
@@ -21,6 +25,8 @@ from rest_framework.exceptions import ValidationError
 import logging
 import math
 from dataclasses import asdict
+from decimal import Decimal
+
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +45,34 @@ def replace_nan(value):
         ]
     return value
 
-
-
 class PricingViewSet(viewsets.ViewSet):
+
     authentication_classes = [JWTAuthentication]
     permission_classes = [CanEvaluate]
+
+    @staticmethod
+    def enrich_evaluation_result(result_data, capacity_mbps):
+        capacity = Decimal(str(capacity_mbps))
+        monthly_income = result_data["monthly_income"]
+        result_data["price_monthly"] = monthly_income
+        result_data["price_per_mbps"] = (
+            monthly_income / capacity
+            if capacity > ZERO
+            else ZERO
+        )
+        return result_data
+
+    @classmethod
+    def enrich_recommendation(cls, recommendation_data, capacity_mbps):
+        for key in ("suggested", "predicted", "floor"):
+            result_data = recommendation_data.get(key)
+            if result_data is not None:
+                cls.enrich_evaluation_result(
+                    result_data,
+                    capacity_mbps
+                )
+        return recommendation_data
+
     @action(detail=False, methods=['post'])
     def evaluate(self, request):
         # user_name = request.user.get_full_name() or request.user.username
@@ -101,7 +130,11 @@ class PricingViewSet(viewsets.ViewSet):
             project=prj,
             user=request.user
         )
-        response_data = replace_nan(asdict(result))
+        response_data = self.enrich_recommendation(
+            asdict(result),
+            prj.capacity_mbps
+        )
+        response_data = replace_nan(response_data)
         serializer_class = self.get_recommendation_serializer()
         serializer = serializer_class(
             response_data,
@@ -163,7 +196,11 @@ class PricingViewSet(viewsets.ViewSet):
         )
         area = request.user.profile.area
         result = PricingService.evaluate_price(prj, price_per_mbps, area)
-        response_data = replace_nan(asdict(result))
+        response_data = self.enrich_evaluation_result(
+            asdict(result),
+            prj.capacity_mbps
+        )
+        response_data = replace_nan(response_data)
         serializer_class = self.get_evaluation_serializer()
         serializer = serializer_class(
             response_data,

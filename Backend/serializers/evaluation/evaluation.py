@@ -2,40 +2,55 @@ from rest_framework import serializers
 
 class CashFlowPeriodSerializer(serializers.Serializer):
     period = serializers.IntegerField()
-    # Ingresos
-    income = serializers.FloatField()
+    income = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6
+    )
 
-    # Desglose OPEX
-    eth_output = serializers.FloatField()
-    oym = serializers.FloatField()
-    poles = serializers.FloatField()
-    ducts = serializers.FloatField()
-    call_center = serializers.FloatField()
-    distribution = serializers.FloatField()
-    collection = serializers.FloatField()
-    opex = serializers.FloatField()
+    capex_breakdown = serializers.DictField(
+        child=serializers.DecimalField(
+            max_digits=24,
+            decimal_places=6
+        )
+    )
 
-    # Cargos
-    gmf = serializers.FloatField()
-    fontic = serializers.FloatField()
-    ica = serializers.FloatField()
-    cartera = serializers.FloatField()
+    opex_breakdown = serializers.DictField(
+        child=serializers.DecimalField(
+            max_digits=24,
+            decimal_places=6
+        )
+    )
 
-    # Resultados
-    ebitda = serializers.FloatField()
-    ebitda_ajustado = serializers.FloatField()
+    capex = serializers.DecimalField(max_digits=24, decimal_places=6)
+    opex = serializers.DecimalField(max_digits=24, decimal_places=6)
 
-    # CAPEX
-    web_capex = serializers.FloatField()
-    initial_capex = serializers.FloatField()
+    gmf = serializers.DecimalField(max_digits=24, decimal_places=6)
+    fontic = serializers.DecimalField(max_digits=24, decimal_places=6)
+    ica = serializers.DecimalField(max_digits=24, decimal_places=6)
+    cartera = serializers.DecimalField(max_digits=24, decimal_places=6)
 
-    # Flujo de caja
-    fcl = serializers.FloatField()
-    discount_factor = serializers.FloatField()
-    discounted_fcl = serializers.FloatField()
-    accumulated_fcl = serializers.FloatField()
-    vpn = serializers.FloatField()
-    income_vpn = serializers.FloatField()
+    ebitda = serializers.DecimalField(max_digits=24, decimal_places=6)
+    ebitda_ajustado = serializers.DecimalField(max_digits=24, decimal_places=6)
+
+    fcl = serializers.DecimalField(max_digits=24, decimal_places=6)
+
+    discount_factor = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=12
+    )
+
+    discounted_fcl = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6
+    )
+
+    accumulated_fcl = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6
+    )
+
+    vpn = serializers.DecimalField(max_digits=24, decimal_places=6)
+    income_vpn = serializers.DecimalField(max_digits=24, decimal_places=6)
 
 class FinancialCashFlowSerializer(serializers.Serializer):
     project_snapshot = serializers.DictField()
@@ -43,40 +58,75 @@ class FinancialCashFlowSerializer(serializers.Serializer):
     periods = CashFlowPeriodSerializer(many=True)
 
 class PriceSummarySerializer(serializers.Serializer):
-    breakeven = serializers.FloatField(allow_null=True)
-    ml_price = serializers.FloatField(allow_null=True)
-    tariff_base = serializers.FloatField(allow_null=True)
-    tariff_discount = serializers.FloatField(allow_null=True)
-    tariff_special = serializers.FloatField(allow_null=True)
+    breakeven = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
+    ml_price = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
+    tariff_base = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
+    tariff_discount = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
+    tariff_special = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
+
 
 class PriceDetailedSerializer(PriceSummarySerializer):
-    breakeven = serializers.FloatField(allow_null=True)
-    ml_price = serializers.FloatField(allow_null=True)
-    suggested_price = serializers.FloatField(allow_null=True)
-
     sample_size = serializers.IntegerField(allow_null=True)
-    source = serializers.CharField()
-    market_average = serializers.FloatField(allow_null=True)
-    market_median = serializers.FloatField(allow_null=True)
-
-    tariff_base = serializers.FloatField(allow_null=True)
-    tariff_discount = serializers.FloatField(allow_null=True)
-    tariff_special = serializers.FloatField(allow_null=True)
+    source = serializers.CharField(allow_null=True)
+    market_average = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
+    market_median = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=6,
+        allow_null=True
+    )
 
 class EvaluationSummarySerializer(serializers.Serializer):
     approved = serializers.BooleanField()
-    price_monthly = serializers.FloatField()
-    price_per_mbps = serializers.FloatField()
+    price_monthly = serializers.DecimalField(max_digits=24, decimal_places=6)
+    price_per_mbps = serializers.DecimalField(max_digits=24, decimal_places=6)
 
 
 class EvaluationDetailedSerializer(EvaluationSummarySerializer):
-    capex = serializers.FloatField()
-    opex_m = serializers.FloatField()
-    vpn = serializers.FloatField()
-    tir = serializers.FloatField()
-    payback = serializers.FloatField()
-    payback_percent = serializers.FloatField()
-    margin = serializers.FloatField()
+    capex = serializers.DecimalField(max_digits=24, decimal_places=6)
+    opex_m = serializers.DecimalField(max_digits=24, decimal_places=6)
+    vpn = serializers.DecimalField(max_digits=24, decimal_places=6)
+    tir = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=12,
+        allow_null=True
+    )
+    payback = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=8,
+        allow_null=True
+    )
+    payback_percent = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=12
+    )
+    margin = serializers.DecimalField(
+        max_digits=24,
+        decimal_places=12
+    )
     financial_cashflow = FinancialCashFlowSerializer()
 
 class PricingRecommendationSummarySerializer(serializers.Serializer):

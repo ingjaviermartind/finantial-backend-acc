@@ -15,7 +15,7 @@ model_nw.set_params(n_jobs=1)
 features = package_nw["features"]
 encoded_features = package_nw["encoded_features"]
 
-def predict_vlr_mbps_nw(capacity : float, municipality, contract_time : float, tipo_producto : str, producto : str, subsegment : str) -> float:
+def predict_vlr_mbps(capacity : float, municipality, contract_time : float, tipo_producto : str, producto : str, subsegment : str) -> float:
     values = {
         "LOG_CAP": np.log10(capacity),
         "Longitud": municipality.longitude,

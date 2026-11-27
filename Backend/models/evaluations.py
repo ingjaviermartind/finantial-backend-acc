@@ -1,56 +1,58 @@
 from django.db import models
+from django.core.serializers.json import DjangoJSONEncoder
+
 from uuid import uuid4
 from Backend.dtos import EvaluationResultDTO 
+
 from dataclasses import asdict
 
 
 class EvaluationResult(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     approved = models.BooleanField()
-    price_monthly = models.DecimalField(
-        max_digits=20,
-        decimal_places=2
-    )
-    price_per_mbps = models.DecimalField(
-        max_digits=20,
-        decimal_places=2
+    capex = models.DecimalField(max_digits=24, decimal_places=6)
+    opex_m = models.DecimalField(max_digits=24, decimal_places=6)
+    monthly_income = models.DecimalField(
+        max_digits=24,
+        decimal_places=6
     )
     vpn = models.DecimalField(
-        max_digits=20,
-        decimal_places=2
+        max_digits=24,
+        decimal_places=6
     )
     tir = models.DecimalField(
-        max_digits=20,
-        decimal_places=2
-    )
-    payback = models.DecimalField(
-        max_digits=20,
-        decimal_places=2
-    )
-    margin = models.DecimalField(
-        max_digits=20,
-        decimal_places=2
-    )
-    sensitivity = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
+        max_digits=24,
+        decimal_places=12,
         null=True,
         blank=True
     )
-    cashflows = models.JSONField()
+    payback = models.DecimalField(
+        max_digits=24,
+        decimal_places=8,
+        null=True,
+        blank=True
+    )
+    payback_percent = models.DecimalField(
+        max_digits=24,
+        decimal_places=12
+    )
+    margin = models.DecimalField(
+        max_digits=24,
+        decimal_places=12
+    )
 
     @classmethod
     def from_dto(cls, result: EvaluationResultDTO):
         return cls(
             approved=result.approved,
-            price_monthly=result.price_monthly,
-            price_per_mbps=result.price_per_mbps,
+            capex=result.capex,
+            opex_m=result.opex_m,
+            monthly_income=result.monthly_income,
             vpn=result.vpn,
             tir=result.tir,
             payback=result.payback,
-            margin=result.margin,
-            cashflows=result.cashflows,
-            sensitivity=result.sensitivity,
+            payback_percent=result.payback_percent,
+            margin=result.margin
         )
 
 class FinancialCashFlow(models.Model):
@@ -65,9 +67,20 @@ class FinancialCashFlow(models.Model):
         related_name='financial_cashflow'
     )
 
-    project_snapshot = models.JSONField(default=dict)
-    variables_snapshot = models.JSONField(default=dict)
-    periods = models.JSONField(default=list)
+    project_snapshot = models.JSONField(
+        default=dict,
+        encoder=DjangoJSONEncoder
+    )
+
+    variables_snapshot = models.JSONField(
+        default=dict,
+        encoder=DjangoJSONEncoder
+    )
+
+    periods = models.JSONField(
+        default=list,
+        encoder=DjangoJSONEncoder
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         db_table = 'financial_cashflows'

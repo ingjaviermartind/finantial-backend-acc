@@ -1,125 +1,117 @@
+from decimal import Decimal
+import math
+import numpy_financial as npf
+from dataclasses import asdict, replace
+
+from Backend.utils import ZERO, ONE, to_decimal
+
 from Backend.dtos import (
-    Project, 
-    FinancialVariables, 
-    EvaluationResultDTO, 
-    CashFlowPeriodDTO, 
+    Project,
+    FinancialVariables,
+    EvaluationResultDTO,
+    CashFlowPeriodDTO,
     FinancialCashFlowDTO,
     ProjectEconomicsBuilder,
     ProjectEconomics
 )
-import numpy_financial as npf
-from dataclasses import asdict, replace
 
 class financial_engine:
     @staticmethod
-    def calculate_capex(project : Project, variables : FinancialVariables) -> float:
-        capex = project.capacity_mbps * project.contract_time * variables.trm * variables.web_capex
-        return capex
-
-    @staticmethod
-    def calculate_opex(project : Project, variables : FinancialVariables) -> float:
-        return (
-            (project.capacity_mbps * variables.trm * variables.eth_output_mbps) 
-            + variables.call_center
-            + variables.oym
-            + variables.poles
-            + (variables.ducts * variables.trm)
-            + variables.distribution
-            + variables.collection
-        )
-
-    @staticmethod
-    def evaluate_project(project : Project, variables : FinancialVariables) -> EvaluationResultDTO:
-        # web_capex = financial_engine.calculate_capex(project, variables)
-        # capex = web_capex + project.initial_capex
-        # opex = financial_engine.calculate_opex(project, variables)
-        # price_monthly = ((capex + (opex * project.contract_time)) / project.contract_time) * sensitivity * variables.margin_factor
-        # price_monthly = round(price_monthly / 1000) * 1000
-        economics : ProjectEconomics = ProjectEconomicsBuilder.build(
-            project,
-            variables
-        )
-
-        gmf = variables.gmf * economics.monthly_income
-        fontic = variables.fontic * economics.monthly_income
-        ica = variables.ica * economics.monthly_income
-        cartera = variables.cartera * economics.monthly_income
-
-        monthly_wacc = variables.monthly_wacc
-
-        eth_output = (
-            project.capacity_mbps
-            * variables.trm
-            * variables.eth_output_mbps
-        )
+    def evaluate_project(project : Project, variables : FinancialVariables, monthly_income: Decimal | None = None) -> EvaluationResultDTO:
+        if project.contract_time <= 0:
+            raise ValueError("El tiempo contractual debe ser mayor que cero.")
+        economics : ProjectEconomics = ProjectEconomicsBuilder.build(project, variables)
+        evaluated_income = economics.monthly_income if monthly_income is None else monthly_income
+        if evaluated_income < ZERO:
+            raise ValueError("El ingreso mensual no puede ser negativo.")
+        
+        gmf = variables.gmf * evaluated_income
+        fontic = variables.fontic * evaluated_income
+        ica = variables.ica * evaluated_income
+        cartera = variables.cartera * evaluated_income
 
         initial_gmf = project.initial_income * variables.gmf
         initial_fontic = project.initial_income * variables.fontic
         initial_ica = project.initial_income * variables.ica
+
         initial_taxes = initial_gmf + initial_fontic + initial_ica
 
-        cashflows = []
+        monthly_wacc = variables.monthly_wacc
+
         periods : CashFlowPeriodDTO = []
-        vpn = 0
-        income_vpn = 0
+
+        vpn = ZERO
+        income_vpn = ZERO
         payback = None
-        ebitda_t = 0
-        acc_fcl = 0
+        total_ebitda = ZERO
+        accumulated_fcl = ZERO
 
         for t in range (project.contract_time + 1):
             if t == 0:
-                income = project.initial_income - initial_taxes if project.initial_income else 0
+                income = project.initial_income - initial_taxes
                 current_capex = economics.capex
+                current_opex = ZERO
+
+                capex_breakdown = economics.capex_breakdown.copy()
+                opex_breakdown = {}
+
                 current_gmf = initial_gmf
                 current_fontic = initial_fontic
                 current_ica = initial_ica
-                current_cartera = 0
+                current_cartera = ZERO
 
             else:
-                income = economics.monthly_income
-                current_capex = 0
+                income = evaluated_income
+                current_capex = ZERO
+                current_opex = economics.opex_monthly
+
+                capex_breakdown = {}
+                opex_breakdown = economics.opex_breakdown.copy()
+
                 current_gmf = gmf
                 current_fontic = fontic
                 current_ica = ica
                 current_cartera = cartera
 
-            ebitda = income - economics.opex_monthly if t > 0 else 0 
-            ebitda_dis = (
+            ebitda = income - current_opex if t > 0 else ZERO
+            ebitda_adjusted = (
                 ebitda
-                - gmf
-                - fontic
-                - ica
-                - cartera
-            ) if t > 0 else 0 
-            fcl = (income if t == 0 else ebitda_dis) - current_capex
-            cashflows.append(fcl)
-            acc_fcl = fcl if t == 0 else acc_fcl + fcl
-            disc_factor = ((1 + monthly_wacc) ** t)
-            disc_fcl = fcl / disc_factor 
-            vpn += disc_fcl
-            if payback is None and vpn > 0:
+                - current_gmf
+                - current_fontic
+                - current_ica
+                - current_cartera
+            ) if t > 0 else ZERO
+
+            fcl = (income if t == 0 else ebitda_adjusted) - current_capex
+
+            accumulated_fcl += fcl
+            discount_factor = (ONE + monthly_wacc) ** t
+            discounted_fcl = fcl / discount_factor 
+
+            vpn_km1 = vpn
+            vpn += discounted_fcl
+
+            if payback is None and vpn > ZERO:
                 if t == 0:
-                    payback = 0
-                else:
-                    vpn_mes_anterior = vpn - disc_fcl
-                    payback = (t - 1) + (abs(vpn_mes_anterior) / disc_fcl)
-            income_vpn += (
-                income / disc_factor
-            )
-            ebitda_t += ebitda_dis
+                    payback = ZERO
+                elif discounted_fcl > ZERO:
+                    payback = (
+                        Decimal(t - 1)
+                        + abs(vpn_km1) / discounted_fcl
+                    )
+            income_vpn += income / discount_factor
+            total_ebitda += ebitda_adjusted
+
             periods.append(
                 CashFlowPeriodDTO(
                     period=t,
                     income=income,
 
-                    eth_output=eth_output if t > 0 else 0,
-                    oym=variables.oym if t > 0 else 0,
-                    poles=variables.poles if t > 0 else 0,
-                    ducts=(variables.ducts * variables.trm) if t > 0 else 0,
-                    call_center=variables.call_center if t > 0 else 0,
-                    distribution=variables.distribution if t > 0 else 0,
-                    collection=variables.collection if t > 0 else 0,
-                    opex=economics.opex_monthly if t > 0 else 0,
+                    capex_breakdown=capex_breakdown,
+                    opex_breakdown=opex_breakdown,
+
+                    capex=current_capex,
+                    opex=current_opex,
 
                     gmf=current_gmf,
                     fontic=current_fontic,
@@ -127,25 +119,36 @@ class financial_engine:
                     cartera=current_cartera,
 
                     ebitda=ebitda,
-                    ebitda_ajustado=ebitda_dis,
+                    ebitda_ajustado=ebitda_adjusted,
 
-                    web_capex=economics.capex if t > 0 else 0,
-                    initial_capex=current_capex,
                     fcl=fcl,
-                    discount_factor=disc_factor,
-                    discounted_fcl=disc_fcl,
-                    accumulated_fcl=acc_fcl,
+                    discount_factor=discount_factor,
+                    discounted_fcl=discounted_fcl,
+                    accumulated_fcl=accumulated_fcl,
                     vpn=vpn,
                     income_vpn=income_vpn
                 )
             )
-        tir = npf.irr(cashflows)
-        margin = vpn / income_vpn if income_vpn else 0
+        tir_float = npf.irr([
+            float(period.fcl)
+            for period in periods
+        ])
+        tir = (
+            to_decimal(tir_float)
+            if tir_float is not None and math.isfinite(tir_float)
+            else None
+        )
+        margin = vpn / income_vpn if income_vpn else ZERO
+        payback_percent = (
+            payback / Decimal(project.contract_time)
+            if payback is not None
+            else ZERO
+        )
         approved = (
             vpn > variables.min_vpn
             and margin >= variables.min_margin
             and payback is not None
-            and (payback / project.contract_time) <= variables.max_payback
+            and payback_percent <= variables.max_payback
         )
         financial_cashflow = FinancialCashFlowDTO(
             project_snapshot=asdict(project),
@@ -156,15 +159,12 @@ class financial_engine:
             approved=approved,
             capex=economics.capex,
             opex_m=economics.opex_monthly,
-            price_monthly=economics.monthly_income,
-            price_per_mbps=economics.monthly_income / project.capacity_mbps,
+            monthly_income=evaluated_income,
             vpn=vpn,
             tir=tir,
             payback=payback,
-            payback_percent = (payback / project.contract_time) if payback is not None else 0,
+            payback_percent=payback_percent,
             margin=margin,
-            cashflows=cashflows,
-            sensitivity=project.sensitivity,
             financial_cashflow=financial_cashflow
         )
 

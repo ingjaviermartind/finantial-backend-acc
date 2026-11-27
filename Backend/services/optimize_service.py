@@ -1,17 +1,19 @@
 from dataclasses import replace
-
+from decimal import Decimal
 from Backend.dtos import FinancialVariables, TelcoProject
 from Backend.services.financial_engine import financial_engine
+
+from Backend.utils import ZERO, ONE, HUNDRED, to_decimal
 
 class PricingOptimizer:
 
     @staticmethod
-    def evaluate_sensitivity(project: TelcoProject, variables: FinancialVariables, sensitivity: float):
+    def evaluate_sensitivity(project: TelcoProject, variables: FinancialVariables, sensitivity: Decimal):
         # Evalúa una copia del proyecto con una sensibilidad determinada.
         # No modifica el proyecto original.
         project_variant = replace(
             project,
-            sensitivity=sensitivity
+            sensitivity=to_decimal(sensitivity)
         )
         return financial_engine.evaluate_project(
             project_variant,
@@ -19,47 +21,68 @@ class PricingOptimizer:
         )
 
     @staticmethod
-    def find_intervals(project : TelcoProject, variables : FinancialVariables, initial_sensitivity = 1.0, min_sensitivity = 1e-6, max_sen = 100):
-        sens = initial_sensitivity
+    def find_intervals(project : TelcoProject, variables : FinancialVariables, initial_sensitivity = ONE, min_sensitivity = Decimal("0.000001"), max_sensitivity = HUNDRED):
+        sensitivity = to_decimal(initial_sensitivity)
+        min_sensitivity = to_decimal(min_sensitivity)
+        max_sensitivity = to_decimal(max_sensitivity)
+
+        if not ZERO < min_sensitivity <= sensitivity <= max_sensitivity:
+            raise ValueError("El intervalo de sensibilidades no es válido.")
+        
         result = PricingOptimizer.evaluate_sensitivity(
             project,
             variables,
             initial_sensitivity
         )
         if result.approved:
-            high = sens
-            while sens <= max_sen:
-                next_sens = sens / 2
-                if next_sens < min_sensitivity:
-                    break
+
+            high = sensitivity
+
+            while sensitivity > min_sensitivity:
+                next_sensitivity = max( sensitivity / Decimal("2"), min_sensitivity)
                 result = PricingOptimizer.evaluate_sensitivity(
                     project,
                     variables,
-                    next_sens
+                    next_sensitivity
                 )
                 if not result.approved:
-                    return next_sens, sens
-                sens = next_sens
+                    return next_sensitivity, sensitivity
+                
+                sensitivity = next_sensitivity
+                high = sensitivity
+
             return min_sensitivity, high
         # caso b
-        low = sens
-        while sens <= max_sen:
-            sens *= 2
+
+        low = sensitivity
+        while sensitivity < max_sensitivity:
+            next_sensitivity = min(sensitivity * Decimal("2"), max_sensitivity)
             result = PricingOptimizer.evaluate_sensitivity(
                 project,
                 variables,
-                sens
+                sensitivity
             )
             if result.approved:
-                return low, sens
-            low = sens
+                return low, sensitivity
+            low = next_sensitivity
+            sensitivity = next_sensitivity
+        raise ValueError(
+            "No se encontró una sensibilidad aprobada "
+            "dentro del límite máximo."
+        )
 
     @staticmethod
-    def find_floor(project : TelcoProject, variables : FinancialVariables, tolerance=1e-4, max_iter=100):
+    def find_floor(project : TelcoProject, variables : FinancialVariables, tolerance=Decimal("0.0001"), max_iter=100):
         low, high = PricingOptimizer.find_intervals(project, variables)
-        best = None
+        tolerance = to_decimal(tolerance)
+        best = PricingOptimizer.evaluate_sensitivity(
+            project,
+            variables,
+            high
+        )
+
         for _ in range(max_iter):
-            mid = (low+high)/2
+            mid = (low + high) / Decimal("2")
             result = PricingOptimizer.evaluate_sensitivity(
                 project,
                 variables,
@@ -72,7 +95,5 @@ class PricingOptimizer:
                 low = mid
             if abs(high-low) < tolerance:
                 break
-        if best is None:
-            raise ValueError("La búsqueda binaria no encontró una solución válida.")
         return best
 
