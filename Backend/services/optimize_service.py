@@ -32,14 +32,16 @@ class PricingOptimizer:
         result = PricingOptimizer.evaluate_sensitivity(
             project,
             variables,
-            initial_sensitivity
+            sensitivity
         )
         if result.approved:
 
             high = sensitivity
 
-            while sensitivity > min_sensitivity:
-                next_sensitivity = max( sensitivity / Decimal("2"), min_sensitivity)
+            while sensitivity <= min_sensitivity:
+                next_sensitivity = sensitivity / Decimal("2")
+                if next_sensitivity < min_sensitivity:
+                    break
                 result = PricingOptimizer.evaluate_sensitivity(
                     project,
                     variables,
@@ -55,8 +57,8 @@ class PricingOptimizer:
         # caso b
 
         low = sensitivity
-        while sensitivity < max_sensitivity:
-            next_sensitivity = min(sensitivity * Decimal("2"), max_sensitivity)
+        while sensitivity <= max_sensitivity:
+            sensitivity = sensitivity * Decimal("2")
             result = PricingOptimizer.evaluate_sensitivity(
                 project,
                 variables,
@@ -64,7 +66,10 @@ class PricingOptimizer:
             )
             if result.approved:
                 return low, sensitivity
-            low = next_sensitivity
+            
+            low = sensitivity
+            if sensitivity == max_sensitivity:
+                break
             sensitivity = next_sensitivity
         raise ValueError(
             "No se encontró una sensibilidad aprobada "
