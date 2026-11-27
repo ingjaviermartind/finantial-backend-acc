@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from decimal import Decimal
 
 class CashFlowPeriodSerializer(serializers.Serializer):
     period = serializers.IntegerField()
@@ -141,3 +142,42 @@ class PricingRecommendationDetailedSerializer(PricingRecommendationSummarySerial
     floor = EvaluationDetailedSerializer()
     price_comparison = PriceDetailedSerializer()
 
+
+class TelcoProductInputSerializer(serializers.Serializer):
+    capacity_mbps = serializers.DecimalField(
+        max_digits=15,
+        decimal_places=6,
+        min_value=0.000001
+    )
+    product_type = serializers.CharField()
+    product = serializers.CharField()
+    subsegment = serializers.CharField()
+    sensitivity = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        default=1
+    )
+    price_per_mbps = serializers.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        required=False,
+        allow_null=True,
+        default=None
+    )
+
+class MultiProjectPricingRequestSerializer(serializers.Serializer):
+    contract_time = serializers.IntegerField(min_value=1)
+    initial_capex = serializers.DecimalField(
+        max_digits=20,
+        decimal_places=6,
+        default=Decimal("0")
+    )
+    initial_income = serializers.DecimalField(
+        max_digits=20,
+        decimal_places=6,
+        default=Decimal("0")
+    )
+    products = TelcoProductInputSerializer(
+        many=True,
+        allow_empty=False
+    )

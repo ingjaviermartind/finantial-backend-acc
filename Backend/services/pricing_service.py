@@ -1,4 +1,4 @@
-from Backend.dtos import Project, PricingRecommendation, MarketReference
+from Backend.dtos import Project, PricingRecommendation, MarketReference, MultiTelcoProject
 
 
 from Backend.services.ml_services import predict_vlr_mbps
@@ -142,5 +142,11 @@ class PricingService:
             monthly_income=monthly_income
         )
 
-        
+    @staticmethod
+    def evaluate_group(project: MultiTelcoProject, area: str):
+        variables = FinancialVariableService.get_variables(area)
+        return financial_engine.evaluate_group(
+            project,
+            variables
+        )
         

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from Backend.dtos import TelcoProject, PricingRecommendation
+from Backend.dtos import TelcoProject, PricingRecommendation, MultiTelcoProject
 from Backend.permissions import CanEvaluate, can_view_detailed_results
 from Backend.models import Municipality, ProductCatalog, Subsegment
 from Backend.serializers import (
@@ -12,7 +12,9 @@ from Backend.serializers import (
     PricingRecommendationDetailedSerializer, 
     PricingRecommendationSummarySerializer, 
     EvaluationSummarySerializer, 
-    EvaluationDetailedSerializer
+    EvaluationDetailedSerializer,
+    MultiProjectPricingRequestSerializer,
+    TelcoProductInputSerializer
 )
 from Backend.services.pricing_service import PricingService
 from Backend.services.quote_log_service import QuoteLogService
@@ -21,6 +23,7 @@ from Backend.utils import ZERO
 
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
+from rest_framework import status
 
 import logging
 import math
@@ -207,6 +210,49 @@ class PricingViewSet(viewsets.ViewSet):
             context={"request": request}
         )
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def evaluate_group(self, request):
+        serializer = MultiProjectPricingRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        data = serializer.validated_data
+        products = [
+            TelcoProject(
+                contract_time=data['contract_time'],
+                capacity_mbps=item['capacity_mbps'],
+                product_type=item['product_type'],
+                product=item['product'],
+                subsegment=item['subsegment'],
+                sensitivity=item['sensitivity'],
+                price_per_mbps=item.get("price_per_mbps"),
+                initial_capex=0,
+                initial_income=0
+            )
+            for item in data['products']
+        ]
+        project = MultiTelcoProject(
+            contract_time=data['contract_time'],
+            products=products,
+            initial_capex=data['initial_capex'],
+            initial_income=data['initial_income']
+        )
+        for product in project.products:
+            print({
+                "capacity": product.capacity_mbps,
+                "price_per_mbps": product.price_per_mbps,
+                "sensitivity": product.sensitivity
+            })
+        area = request.user.profile.area
+        result = PricingService.evaluate_group(
+            project,
+            area
+        )
+        response_data = replace_nan(asdict(result))
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK
+        )
 
     def get_recommendation_serializer(self):
         if can_view_detailed_results(self.request.user):

@@ -7,12 +7,14 @@ from Backend.utils import ZERO, ONE, to_decimal
 
 from Backend.dtos import (
     Project,
+    MultiTelcoProject,
     FinancialVariables,
     EvaluationResultDTO,
     CashFlowPeriodDTO,
     FinancialCashFlowDTO,
     ProjectEconomicsBuilder,
-    ProjectEconomics
+    ProjectEconomics,
+    GroupEvaluationDTO
 )
 
 class financial_engine:
@@ -168,23 +170,33 @@ class financial_engine:
             financial_cashflow=financial_cashflow
         )
 
-    
     @staticmethod
-    def evaluate_price_per_mbps(project : Project, variables : FinancialVariables, value_mbps : float) -> EvaluationResultDTO:
-        economics : ProjectEconomics = ProjectEconomicsBuilder.build(
+    def evaluate_group( project: MultiTelcoProject, variables: FinancialVariables) -> GroupEvaluationDTO:
+        # 1. Evaluación consolidada
+        consolidated = financial_engine.evaluate_project(
             project,
             variables
         )
-        target_monthly_income = value_mbps * project.capacity_mbps
-        sensitivity = (
-            target_monthly_income * economics.contract_time
-            / ((economics.capex + economics.opex_monthly * economics.contract_time) * variables.margin_factor)
+        # 2. Evaluaciones individuales
+        individual_results = [
+            financial_engine.evaluate_project(
+                product,
+                variables
+            )
+            for product in project.products
+        ]
+        # 3. Construir resultado grupal
+        return GroupEvaluationDTO(
+            approved=consolidated.approved,
+            capex=consolidated.capex,
+            opex_m=consolidated.opex_m,
+            monthly_income=consolidated.monthly_income,
+            vpn=consolidated.vpn,
+            tir=consolidated.tir,
+            payback=consolidated.payback,
+            payback_percent=consolidated.payback_percent,
+            margin=consolidated.margin,
+            financial_cashflow=consolidated.financial_cashflow,
+            products=individual_results
         )
-        project_variant = replace(
-            project,
-            sensitivity=sensitivity
-        )
-        return financial_engine.evaluate_project(
-            project_variant,
-            variables
-        )
+

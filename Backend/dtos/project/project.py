@@ -28,12 +28,14 @@ class TelcoProject(Project):
     product: str
     subsegment: str
     sensitivity: Decimal = Decimal("1")
+    price_per_mbps: Decimal | None = None
 
     def __post_init__(self):
         self.capacity_mbps = to_decimal(self.capacity_mbps)
         self.initial_income = to_decimal(self.initial_income)
         self.initial_capex = to_decimal(self.initial_capex)
         self.sensitivity = to_decimal(self.sensitivity)
+        self.price_per_mbps = to_decimal(self.price_per_mbps) if self.price_per_mbps is not None else None
 
     def calculate_capex_breakdown(self, variables):
         return {
@@ -62,6 +64,8 @@ class TelcoProject(Project):
         }
 
     def calculate_monthly_income(self, variables, capex: Decimal, opex: Decimal) -> Decimal:
+        if self.price_per_mbps is not None:
+            return thousands(self.capacity_mbps * self.price_per_mbps)
         price_monthly = ( (capex + opex * Decimal(self.contract_time)) / Decimal(self.contract_time) ) * self.sensitivity * variables.margin_factor
         return thousands(price_monthly)
 
